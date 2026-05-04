@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Dashboard - Adz4Needz</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    h1, h2, h3, h4, h5, h6 { font-family: 'Poppins', sans-serif; }
+
+    .aqua-gradient { background: linear-gradient(135deg, #0093E9 0%, #00C9A7 100%); }
+    .aqua-gradient-text { background: linear-gradient(to right, #0093E9, #00C9A7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+    .nav-item {
+      padding: 12px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .nav-item.active {
+      background: linear-gradient(135deg, #4F46E5 0%, #06B6D4 100%);
+      color: white;
+    }
+
+    .course-card,
+    .panel-card,
+    .stat-card,
+    .todo-card,
+    .achievement-badge {
+      background: white;
+      border: 2px solid #E5E7EB;
+      border-radius: 12px;
+      transition: all 0.3s;
+    }
+
+    .course-card,
+    .panel-card,
+    .todo-card,
+    .achievement-badge {
+      padding: 20px;
+    }
+
+    .stat-card {
+      padding: 20px;
+      text-align: center;
+    }
+
+    .course-card:hover,
+    .panel-card:hover,
+    .todo-card:hover,
+    .achievement-badge:hover {
+      border-color: #4F46E5;
+      box-shadow: 0 10px 25px rgba(79, 70, 229, 0.12);
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #E5E7EB;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #4F46E5 0%, #06B6D4 100%);
+      border-radius: 999px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #4F46E5 0%, #06B6D4 100%);
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(79, 70, 229, 0.3);
+    }
+
+    .section.hidden {
+      display: none;
+    }
+
+    .achievement-badge.locked {
+      opacity: 0.55;
+    }
+  </style>
+  <link rel="stylesheet" href="/premium-ui.css">
+  <script src="/premium-ui.js" defer></script>
+</head>
+<body class="bg-gray-50">
+  <div class="flex h-screen">
+    <aside class="hidden lg:flex lg:w-64 bg-white border-r-2 border-gray-200 flex-col p-6">
+      <div class="mb-8">
+        <span class="text-2xl font-black aqua-gradient-text block">Adz4Needz</span>
+        <p class="text-sm text-gray-500 mt-1">Learning Platform</p>
+      </div>
+
+      <nav class="flex-1 space-y-2">
+        <div class="nav-item active" data-nav="dashboard" onclick="showSection('dashboard', event)">Dashboard</div>
+        <div class="nav-item" data-nav="courses" onclick="showSection('courses', event)">My Courses</div>
+        <div class="nav-item" data-nav="todos" onclick="showSection('todos', event)">To-Do List</div>
+        <div class="nav-item" data-nav="achievements" onclick="showSection('achievements', event)">Achievements</div>
+        <div class="nav-item" data-nav="settings" onclick="showSection('settings', event)">Settings</div>
+      </nav>
+
+      <button onclick="logout()" class="w-full py-2 px-4 bg-red-50 text-red-600 font-bold rounded-lg hover:bg-red-100 transition">
+        Logout
+      </button>
+    </aside>
+
+    <main class="flex-1 overflow-auto">
+      <nav class="bg-white border-b-2 border-gray-200 px-6 py-4 flex justify-between items-center">
+        <h1 class="text-2xl font-black text-gray-900">Student Dashboard</h1>
+        <div class="flex items-center gap-4">
+          <span id="userName" class="font-bold text-gray-700"></span>
+          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-cyan-400"></div>
+        </div>
+      </nav>
+
+      <div class="p-6 lg:p-8 space-y-8">
+        <section data-section="dashboard" class="section space-y-8">
+          <div>
+            <h2 class="text-3xl font-black text-gray-900 mb-2">Welcome back, <span id="welcomeName">Student</span></h2>
+            <p class="text-gray-600">Track real course progress, plan your tasks, and keep learning momentum.</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="stat-card">
+              <div class="text-3xl mb-2">1</div>
+              <p class="text-gray-600 text-sm">Enrolled Courses</p>
+              <p class="text-2xl font-black text-purple-500" id="enrolledCount"></p>
+            </div>
+            <div class="stat-card">
+              <div class="text-3xl mb-2">2</div>
+              <p class="text-gray-600 text-sm">Average Progress</p>
+              <p class="text-2xl font-black aqua-gradient-text" id="averageProgress">0%</p>
+            </div>
+            <div class="stat-card">
+              <div class="text-3xl mb-2">3</div>
+              <p class="text-gray-600 text-sm">Completed Courses</p>
+              <p class="text-2xl font-black text-orange-500" id="completedCount">0</p>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-2xl font-black text-gray-900">Available Courses</h3>
+              <span class="text-sm text-gray-500">Ratings removed until real reviews are available</span>
+            </div>
+            <div id="dashboardCoursesList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div class="text-center py-8 text-gray-500 col-span-full">Loading courses...</div>
+            </div>
+          </div>
+        </section>
+
+        <section data-section="courses" class="section hidden">
+          <h2 class="text-3xl font-black text-gray-900 mb-6">My Enrolled Courses</h2>
+          <div id="enrolledCoursesList" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="text-center py-8 text-gray-500 col-span-full">Loading your courses...</div>
+          </div>
+        </section>
+
+        <section data-section="todos" class="section hidden space-y-6">
+          <div class="flex justify-between items-center">
+            <div>
+              <h2 class="text-3xl font-black text-gray-900 mb-2">To-Do List</h2>
+              <p class="text-gray-600">Plan your next study steps with real saved tasks.</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 space-y-6">
+              <div class="panel-card">
+                <h3 class="text-xl font-bold text-gray-900 mb-4">Add Task</h3>
+                <form id="todoForm" class="grid grid-cols-1 md:grid-cols-4 gap-3" onsubmit="handleTodoSubmit(event)">
+                  <input id="todoTaskInput" type="text" class="px-4 py-2 border-2 border-gray-300 rounded-lg md:col-span-2" placeholder="Read module 2 notes" required>
+                  <input id="todoDueInput" type="date" class="px-4 py-2 border-2 border-gray-300 rounded-lg">
+                  <select id="todoPriorityInput" class="px-4 py-2 border-2 border-gray-300 rounded-lg">
+                    <option value="high">High</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                  <button type="submit" class="btn-primary md:col-span-4">Save Task</button>
+                </form>
+              </div>
+
+              <div id="todoList" class="space-y-4">
+                <div class="text-center py-8 text-gray-500">Loading tasks...</div>
+              </div>
+            </div>
+
+            <div class="space-y-4">
+              <div class="panel-card">
+                <h3 class="text-xl font-bold text-gray-900 mb-4">Task Summary</h3>
+                <div class="space-y-3">
+                  <div class="p-3 bg-blue-50 rounded-lg">
+                    <p class="font-bold text-blue-700">Pending</p>
+                    <p class="text-sm text-blue-600" id="pendingTodoCount">0 tasks</p>
+                  </div>
+                  <div class="p-3 bg-amber-50 rounded-lg">
+                    <p class="font-bold text-amber-700">High Priority</p>
+                    <p class="text-sm text-amber-600" id="highTodoCount">0 tasks</p>
+                  </div>
+                  <div class="p-3 bg-green-50 rounded-lg">
+                    <p class="font-bold text-green-700">Completed</p>
+                    <p class="text-sm text-green-600" id="completedTodoCount">0 tasks</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section data-section="achievements" class="section hidden">
+          <h2 class="text-3xl font-black text-gray-900 mb-6">Achievements</h2>
+          <div id="achievementsGrid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+            <div class="text-center py-8 text-gray-500 col-span-full">Loading achievements...</div>
+          </div>
+        </section>
+
+        <section data-section="settings" class="section hidden">
+          <h2 class="text-3xl font-black text-gray-900 mb-6">Account Overview</h2>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="panel-card">
+              <h3 class="text-xl font-bold text-gray-900 mb-4">Profile</h3>
+              <div class="space-y-3 text-gray-700">
+                <div>
+                  <p class="text-sm text-gray-500">Full Name</p>
+                  <p id="settingsName" class="font-semibold"></p>
+                </div>
+                <div>
+                  <p class="text-sm text-gray-500">Email</p>
+                  <p id="settingsEmail" class="font-semibold"></p>
+                </div>
+                <div>
+                  <p class="text-sm text-gray-500">Role</p>
+                  <p class="font-semibold capitalize">Student</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel-card">
+              <h3 class="text-xl font-bold text-gray-900 mb-4">Learning Snapshot</h3>
+              <div class="space-y-3 text-gray-700">
+                <div class="flex justify-between">
+                  <span>Total Enrollments</span>
+                  <strong id="settingsEnrollmentCount"></strong>
+                </div>
+                <div class="flex justify-between">
+                  <span>Average Progress</span>
+                  <strong id="settingsAverageProgress">0%</strong>
+                </div>
+                <div class="flex justify-between">
+                  <span>Completed Courses</span>
+                  <strong id="settingsCompletedCount">0</strong>
+                </div>
+              </div>
+              <p class="text-sm text-gray-500 mt-4">Profile editing is managed from the admin side in this version.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div id="courseModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6">
+      <div class="flex justify-between items-start mb-4">
+        <h3 id="modalTitle" class="text-2xl font-black text-gray-900"></h3>
+        <button onclick="closeModal()" class="text-2xl text-gray-400 hover:text-gray-600">&times;</button>
+      </div>
+      <div id="modalContent" class="space-y-4 mb-6"></div>
+      <div class="flex gap-3">
+        <button onclick="closeModal()" class="flex-1 py-2 px-4 bg-gray-100 text-gray-900 font-bold rounded-lg hover:bg-gray-200">Close</button>
+        <button id="enrollBtn" onclick="enrollCourse()" class="flex-1 btn-primary">Enroll</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000/api';
+    let currentCourse = null;
+    let currentUser = null;
+    let allCourses = [];
+    let enrolledCourses = [];
+    let enrolledIds = [];
+    let todos = [];
+
+    function showSection(sectionName, event) {
+      document.querySelectorAll('[data-section]').forEach((section) => {
+        section.classList.add('hidden');
+      });
+
+      const targetSection = document.querySelector(`[data-section="${sectionName}"]`);
+      if (targetSection) {
+        targetSection.classList.remove('hidden');
+      }
+
+      document.querySelectorAll('[data-nav]').forEach((item) => {
+        item.classList.remove('active');
+      });
+
+      const navTarget = event?.currentTarget || document.querySelector(`[data-nav="${sectionName}"]`);
+      if (navTarget) {
+        navTarget.classList.add('active');
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/';
+    }
+
+    async function loadUserData() {
+      const user = localStorage.getItem('user');
+      if (!user) {
+        window.location.href = '/';
+        return false;
+      }
+
+      currentUser = JSON.parse(user);
+      if (currentUser.role !== 'student') {
+        window.location.href = '/';
+        return false;
+      }
+
+      document.getElementById('userName').textContent = currentUser.name;
+      document.getElementById('welcomeName').textContent = currentUser.name.split(' ')[0];
+      document.getElementById('settingsName').textContent = currentUser.name;
+      document.getElementById('settingsEmail').textContent = currentUser.email;
+      return true;
+    }
+
+    async function loadCourses() {
+      try {
+        const response = await fetch(`${API_URL}/courses`);
+        allCourses = response.ok ? await response.json() : [];
+        displayDashboardCourses(allCourses);
+        await loadEnrollments();
+      } catch (error) {
+        console.error('Error loading courses:', error);
+      }
+    }
+
+    async function loadEnrollments() {
+      try {
+        const response = await fetch(`${API_URL}/enrollments/${currentUser.id}`);
+        enrolledCourses = response.ok ? await response.json() : [];
+        enrolledIds = enrolledCourses.map((course) => course.course_id);
+        displayDashboardCourses(allCourses);
+        updateStudentStats();
+        displayEnrolledCourses(enrolledCourses);
+        renderAchievements();
+      } catch (error) {
+        console.error('Error loading enrollments:', error);
+      }
+    }
+
+    function updateStudentStats() {
+      const enrolledCount = enrolledCourses.length;
+      const completedCount = enrolledCourses.filter((course) => course.status === 'completed' || Number(course.progress) >= 100).length;
+      const averageProgressValue = enrolledCount
+        ? Math.round(enrolledCourses.reduce((sum, course) => sum + Number(course.progress || 0), 0) / enrolledCount)
+        : 0;
+
+      document.getElementById('enrolledCount').textContent = enrolledCount;
+      document.getElementById('averageProgress').textContent = `${averageProgressValue}%`;
+      document.getElementById('completedCount').textContent = completedCount;
+      document.getElementById('settingsEnrollmentCount').textContent = enrolledCount;
+      document.getElementById('settingsAverageProgress').textContent = `${averageProgressValue}%`;
+      document.getElementById('settingsCompletedCount').textContent = completedCount;
+    }
+
+    function displayDashboardCourses(courses) {
+      const coursesList = document.getElementById('dashboardCoursesList');
+
+      if (!courses.length) {
+        coursesList.innerHTML = '<div class="col-span-full text-center py-8 text-gray-500">No courses available right now.</div>';
+        return;
+      }
+
+      coursesList.innerHTML = courses.map((course) => `
+        <div class="course-card">
+          <div class="flex justify-between items-start gap-3 mb-3">
+            <h4 class="text-lg font-bold text-gray-900 flex-1">${course.title}</h4>
+            <span class="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-bold">${course.level}</span>
+          </div>
+          <p class="text-gray-600 text-sm mb-4">${course.description}</p>
+          <div class="space-y-2 text-sm text-gray-600 mb-4">
+            <div class="flex justify-between"><span>Instructor</span><strong>${course.instructor}</strong></div>
+            <div class="flex justify-between"><span>Duration</span><strong>${course.duration}</strong></div>
+            <div class="flex justify-between"><span>Enrolled Students</span><strong>${course.students || 0}</strong></div>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-xl font-black text-purple-500">Rs.${Number(course.price || 0).toLocaleString()}</span>
+            <button onclick="showCourseDetails(${course.id})" class="btn-primary text-sm">${enrolledIds.includes(course.id) ? 'View Course' : 'View Details'}</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function displayEnrolledCourses(courses) {
+      const coursesList = document.getElementById('enrolledCoursesList');
+
+      if (!courses.length) {
+        coursesList.innerHTML = '<div class="col-span-full text-center py-8 text-gray-500">No enrolled courses yet. Use the dashboard to join one.</div>';
+        return;
+      }
+
+      coursesList.innerHTML = courses.map((course) => {
+        const progress = Number(course.progress || 0);
+        const isComplete = course.status === 'completed' || progress >= 100;
+        return `
+          <div class="course-card">
+            <div class="flex justify-between items-start mb-3">
+              <h4 class="text-lg font-bold text-gray-900 flex-1">${course.title}</h4>
+              <span class="px-3 py-1 rounded-full text-xs font-bold ${isComplete ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}">
+                ${isComplete ? 'Completed' : 'Active'}
+              </span>
+            </div>
+            <p class="text-gray-600 text-sm mb-4">Instructor: ${course.instructor}</p>
+            <div class="flex justify-between text-sm text-gray-600 mb-2">
+              <span>Progress</span>
+              <strong>${progress}%</strong>
+            </div>
+            <div class="progress-bar mb-4">
+              <div class="progress-fill" style="width: ${Math.min(progress, 100)}%"></div>
+            </div>
+            <button onclick="showCourseDetails(${course.course_id || course.id})" class="btn-primary w-full">Continue Learning</button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderAchievements() {
+      const grid = document.getElementById('achievementsGrid');
+      const enrolledCount = enrolledCourses.length;
+      const completedCount = enrolledCourses.filter((course) => course.status === 'completed' || Number(course.progress) >= 100).length;
+      const averageProgressValue = enrolledCount
+        ? Math.round(enrolledCourses.reduce((sum, course) => sum + Number(course.progress || 0), 0) / enrolledCount)
+        : 0;
+
+      const achievements = [
+        {
+          title: 'First Enrollment',
+          description: 'Join your first course.',
+          unlocked: enrolledCount >= 1
+        },
+        {
+          title: 'Focused Learner',
+          description: 'Reach 50% average progress.',
+          unlocked: averageProgressValue >= 50
+        },
+        {
+          title: 'Finisher',
+          description: 'Complete one full course.',
+          unlocked: completedCount >= 1
+        },
+        {
+          title: 'Multi-Course Learner',
+          description: 'Enroll in 3 or more courses.',
+          unlocked: enrolledCount >= 3
+        }
+      ];
+
+      grid.innerHTML = achievements.map((badge) => `
+        <div class="achievement-badge ${badge.unlocked ? '' : 'locked'}">
+          <div class="text-lg font-black text-gray-900 mb-2">${badge.unlocked ? 'Unlocked' : 'Locked'}</div>
+          <p class="font-bold text-gray-900">${badge.title}</p>
+          <p class="text-sm text-gray-600 mt-2">${badge.description}</p>
+        </div>
+      `).join('');
+    }
+
+    function showCourseDetails(courseId) {
+      currentCourse = courseId;
+      fetch(`${API_URL}/courses/${courseId}`)
+        .then((response) => response.json())
+        .then((course) => {
+          document.getElementById('modalTitle').textContent = course.title;
+          document.getElementById('modalContent').innerHTML = `
+            <div class="space-y-2 text-gray-700">
+              <p><strong>Instructor:</strong> ${course.instructor}</p>
+              <p><strong>Duration:</strong> ${course.duration}</p>
+              <p><strong>Level:</strong> ${course.level}</p>
+              <p><strong>Price:</strong> Rs.${Number(course.price || 0).toLocaleString()}</p>
+              <p><strong>Enrolled Students:</strong> ${course.students || 0}</p>
+              <p class="pt-3">${course.description}</p>
+            </div>
+          `;
+
+          const enrollBtn = document.getElementById('enrollBtn');
+          if (enrolledIds.includes(courseId)) {
+            enrollBtn.textContent = 'Already Enrolled';
+            enrollBtn.disabled = true;
+            enrollBtn.style.opacity = '0.6';
+          } else {
+            enrollBtn.textContent = 'Enroll';
+            enrollBtn.disabled = false;
+            enrollBtn.style.opacity = '1';
+          }
+
+          document.getElementById('courseModal').classList.remove('hidden');
+        })
+        .catch((error) => {
+          alert(`Unable to load course details: ${error.message}`);
+        });
+    }
+
+    function closeModal() {
+      document.getElementById('courseModal').classList.add('hidden');
+    }
+
+    async function enrollCourse() {
+      try {
+        const response = await fetch(`${API_URL}/enrollments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: currentUser.id, course_id: currentCourse })
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          alert(data.error || 'Unable to enroll right now.');
+          return;
+        }
+
+        closeModal();
+        await loadCourses();
+      } catch (error) {
+        alert(`Enrollment failed: ${error.message}`);
+      }
+    }
+
+    async function loadTodos() {
+      try {
+        const response = await fetch(`${API_URL}/todos/${currentUser.id}`);
+        todos = response.ok ? await response.json() : [];
+        renderTodos();
+      } catch (error) {
+        console.error('Error loading todos:', error);
+      }
+    }
+
+    function renderTodos() {
+      const todoList = document.getElementById('todoList');
+
+      if (!todos.length) {
+        todoList.innerHTML = '<div class="panel-card text-center text-gray-500">No tasks yet. Add one above to get started.</div>';
+      } else {
+        todoList.innerHTML = todos.map((todo) => `
+          <div class="todo-card">
+            <div class="flex justify-between items-start gap-4">
+              <div class="flex gap-3">
+                <input type="checkbox" class="mt-1 w-5 h-5 cursor-pointer" ${todo.status === 'completed' ? 'checked' : ''} onchange="toggleTodo(${todo.id}, this.checked)">
+                <div>
+                  <p class="font-bold text-gray-900 ${todo.status === 'completed' ? 'line-through text-gray-500' : ''}">${todo.task}</p>
+                  <p class="text-sm text-gray-600 mt-1">
+                    ${todo.due_date ? `Due: ${new Date(todo.due_date).toLocaleDateString()}` : 'No due date'}
+                  </p>
+                  <p class="text-xs uppercase tracking-wide mt-2 ${todo.priority === 'high' ? 'text-red-600' : todo.priority === 'medium' ? 'text-amber-600' : 'text-green-600'}">
+                    ${todo.priority} priority
+                  </p>
+                </div>
+              </div>
+              <button onclick="deleteTodo(${todo.id})" class="text-red-600 font-semibold hover:text-red-700">Delete</button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      const pending = todos.filter((todo) => todo.status !== 'completed').length;
+      const highPriority = todos.filter((todo) => todo.priority === 'high' && todo.status !== 'completed').length;
+      const completed = todos.filter((todo) => todo.status === 'completed').length;
+
+      document.getElementById('pendingTodoCount').textContent = `${pending} task${pending === 1 ? '' : 's'}`;
+      document.getElementById('highTodoCount').textContent = `${highPriority} task${highPriority === 1 ? '' : 's'}`;
+      document.getElementById('completedTodoCount').textContent = `${completed} task${completed === 1 ? '' : 's'}`;
+    }
+
+    async function handleTodoSubmit(event) {
+      event.preventDefault();
+
+      const task = document.getElementById('todoTaskInput').value.trim();
+      const dueDate = document.getElementById('todoDueInput').value;
+      const priority = document.getElementById('todoPriorityInput').value;
+
+      if (!task) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/todos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: currentUser.id,
+            task,
+            due_date: dueDate || null,
+            priority
+          })
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          alert(data.error || 'Unable to save task.');
+          return;
+        }
+
+        document.getElementById('todoForm').reset();
+        document.getElementById('todoPriorityInput').value = 'medium';
+        await loadTodos();
+      } catch (error) {
+        alert(`Unable to save task: ${error.message}`);
+      }
+    }
+
+    async function toggleTodo(todoId, completed) {
+      try {
+        const response = await fetch(`${API_URL}/todos/${todoId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: completed ? 'completed' : 'pending' })
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          alert(data.error || 'Unable to update task.');
+          return;
+        }
+
+        await loadTodos();
+      } catch (error) {
+        alert(`Unable to update task: ${error.message}`);
+      }
+    }
+
+    async function deleteTodo(todoId) {
+      try {
+        const response = await fetch(`${API_URL}/todos/${todoId}`, { method: 'DELETE' });
+        if (!response.ok) {
+          const data = await response.json();
+          alert(data.error || 'Unable to delete task.');
+          return;
+        }
+
+        await loadTodos();
+      } catch (error) {
+        alert(`Unable to delete task: ${error.message}`);
+      }
+    }
+
+    window.addEventListener('load', async () => {
+      if (!localStorage.getItem('token')) {
+        window.location.href = '/';
+        return;
+      }
+
+      const isReady = await loadUserData();
+      if (!isReady) {
+        return;
+      }
+
+      await Promise.all([loadCourses(), loadTodos()]);
+    });
+  </script>
+</body>
+</html>

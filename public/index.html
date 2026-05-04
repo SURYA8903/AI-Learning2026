@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Adz4Needz - AI Learning Platform</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    h1, h2, h3, h4, h5, h6 { font-family: 'Poppins', sans-serif; }
+    
+    .aqua-gradient { background: linear-gradient(135deg, #0093E9 0%, #00C9A7 100%); }
+    .aqua-gradient-text { background: linear-gradient(to right, #0093E9, #00C9A7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .primary-color { color: #4F46E5; }
+    .secondary-color { color: #06B6D4; }
+    
+    .input-field {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #E5E7EB;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+    
+    .input-field:focus {
+      outline: none;
+      border-color: #4F46E5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #4F46E5 0%, #06B6D4 100%);
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(79, 70, 229, 0.2);
+    }
+    
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+    
+    .role-chip {
+      padding: 10px 20px;
+      border: 2px solid #E5E7EB;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-weight: 600;
+      background: white;
+    }
+    
+    .role-chip.active {
+      background: linear-gradient(135deg, #4F46E5 0%, #06B6D4 100%);
+      color: white;
+      border-color: #4F46E5;
+    }
+    
+    .error-msg {
+      color: #DC2626;
+      font-size: 14px;
+      margin-top: 4px;
+    }
+    
+    .skill-badge {
+      display: inline-block;
+      padding: 8px 16px;
+      background: #F0F9FF;
+      border: 2px solid #4F46E5;
+      border-radius: 20px;
+      cursor: pointer;
+      margin: 4px;
+      transition: all 0.3s;
+    }
+    
+    .skill-badge.selected {
+      background: #4F46E5;
+      color: white;
+    }
+  </style>
+  <link rel="stylesheet" href="/premium-ui.css">
+  <script src="/premium-ui.js" defer></script>
+</head>
+<body class="bg-gray-50">
+  <div class="flex flex-col lg:flex-row min-h-screen">
+    <!-- Brand Section (Hidden on Mobile) -->
+    <div class="hidden lg:flex lg:w-1/2 aqua-gradient items-center justify-center p-8 relative overflow-hidden text-white">
+      <div class="absolute inset-0 opacity-10" style="background-image: url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22white%22/></svg>')"></div>
+      <div class="relative z-10 text-center max-w-md">
+        <h1 class="text-5xl font-black mb-6">Adz4Needz</h1>
+        <p class="text-lg opacity-90 mb-8">Unlock your potential with our modern learning ecosystem. Personalized paths, expert instructors, and a community of achievers.</p>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+            <div class="text-3xl mb-2">🎓</div>
+            <div class="text-2xl font-bold">1.2k+</div>
+            <div class="text-sm opacity-80 uppercase font-semibold">Courses</div>
+          </div>
+          <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+            <div class="text-3xl mb-2">👥</div>
+            <div class="text-2xl font-bold">50k+</div>
+            <div class="text-sm opacity-80 uppercase font-semibold">Learners</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form Section -->
+    <div class="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-12">
+      <div class="w-full max-w-md">
+        <!-- Logo for Mobile -->
+        <div class="lg:hidden mb-8">
+          <span class="text-3xl font-black aqua-gradient-text block">Adz4Needz</span>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="flex gap-4 mb-8">
+          <button id="loginTab" class="flex-1 py-3 font-bold text-lg border-b-2 border-purple-500 text-purple-500 transition-all">Login</button>
+          <button id="registerTab" class="flex-1 py-3 font-bold text-lg border-b-2 border-gray-200 text-gray-400 transition-all">Register</button>
+        </div>
+
+        <!-- LOGIN FORM -->
+        <div id="loginForm" class="space-y-6">
+          <div>
+            <h2 class="text-3xl font-black text-gray-900 mb-2">Welcome Back 🔐</h2>
+            <p class="text-gray-600">Enter your credentials to access your dashboard.</p>
+          </div>
+
+          <!-- Role Selection -->
+          <div>
+            <label class="block font-bold text-gray-700 mb-3">Select Your Role</label>
+            <div class="flex gap-3 flex-wrap">
+              <button type="button" class="role-chip active" data-role="student" onclick="selectRole('student', 'login')">
+                👨‍🎓 Student
+              </button>
+              <button type="button" class="role-chip" data-role="trainer" onclick="selectRole('trainer', 'login')">
+                👨‍🏫 Trainer
+              </button>
+              <button type="button" class="role-chip" data-role="admin" onclick="selectRole('admin', 'login')">
+                ⚙️ Admin
+              </button>
+            </div>
+            <input type="hidden" id="loginRole" value="student">
+          </div>
+
+          <form id="loginFormElement" onsubmit="handleLogin(event)">
+            <!-- Email -->
+            <div class="mb-5">
+              <label class="block font-bold text-gray-700 mb-2">Email Address 📧</label>
+              <input type="email" id="loginEmail" class="input-field" placeholder="alex@example.com" required>
+              <div id="loginEmailError" class="error-msg"></div>
+            </div>
+
+            <!-- Password -->
+            <div class="mb-6">
+              <label class="block font-bold text-gray-700 mb-2">Password 🔑</label>
+              <input type="password" id="loginPassword" class="input-field" placeholder="••••••••" required>
+              <div id="loginPasswordError" class="error-msg"></div>
+            </div>
+
+            <!-- Remember Me -->
+            <div class="flex items-center mb-6">
+              <input type="checkbox" id="rememberMe" class="w-4 h-4">
+              <label for="rememberMe" class="ml-2 text-gray-600">Keep me logged in</label>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="btn-primary w-full py-3 flex items-center justify-center gap-2 text-lg">
+              <span>Login to Account 🚀</span>
+              <span>→</span>
+            </button>
+
+            <div id="loginError" class="error-msg text-center mt-4"></div>
+            <div id="loginSuccess" class="text-green-600 text-center mt-4 font-bold"></div>
+          </form>
+
+          <!-- Sign Up Link -->
+          <p class="text-center text-gray-600">
+            Don't have an account? 
+            <button type="button" onclick="switchTab('register')" class="text-purple-500 font-bold hover:underline">Create Account</button>
+          </p>
+        </div>
+
+        <!-- REGISTER FORM -->
+        <div id="registerForm" class="space-y-6 hidden">
+          <div>
+            <h2 class="text-3xl font-black text-gray-900 mb-2">Create Account 🎓</h2>
+            <p class="text-gray-600">Join our learning community today.</p>
+          </div>
+
+          <!-- Role Selection -->
+          <div>
+            <label class="block font-bold text-gray-700 mb-3">Select Your Role</label>
+            <div class="flex gap-3 flex-wrap">
+              <button type="button" class="role-chip active" data-role="student" onclick="selectRole('student', 'register')">
+                👨‍🎓 Student
+              </button>
+              <button type="button" class="role-chip" data-role="trainer" onclick="selectRole('trainer', 'register')">
+                👨‍🏫 Trainer
+              </button>
+              
+             
+              
+            </div>
+            <input type="hidden" id="registerRole" value="student">
+          </div>
+
+          <form id="registerFormElement" onsubmit="handleRegister(event)">
+            <!-- Name -->
+            <div class="mb-5">
+              <label class="block font-bold text-gray-700 mb-2">Full Name</label>
+              <input type="text" id="registerName" class="input-field" placeholder="John Doe" required>
+              <div id="registerNameError" class="error-msg"></div>
+            </div>
+
+            <!-- Email -->
+            <div class="mb-5">
+              <label class="block font-bold text-gray-700 mb-2">Email Address 📧</label>
+              <input type="email" id="registerEmail" class="input-field" placeholder="alex@example.com" required>
+              <div id="registerEmailError" class="error-msg"></div>
+            </div>
+
+            <!-- Phone Number -->
+            <div class="mb-5">
+              <label class="block font-bold text-gray-700 mb-2">Phone Number 📱</label>
+              <input type="tel" id="registerPhone" class="input-field" placeholder="Enter Your Phone Number" required>
+              <div id="registerPhoneError" class="error-msg"></div>
+            </div>
+
+            <!-- Password -->
+            <div class="mb-5">
+              <label class="block font-bold text-gray-700 mb-2">Password 🔑</label>
+              <input type="password" id="registerPassword" class="input-field" placeholder="At least 8 characters" required oninput="validatePasswordStrength()">
+              <div id="passwordStrengthContainer" class="mt-3 hidden">
+                <div class="text-sm font-semibold mb-2">Password Requirements:</div>
+                <div class="space-y-1 text-sm">
+                  <div id="lengthCheck" class="flex items-center gap-2">
+                    <span id="lengthCheckIcon">❌</span>
+                    <span>Minimum 8 characters</span>
+                  </div>
+                  <div id="uppercaseCheck" class="flex items-center gap-2">
+                    <span id="uppercaseCheckIcon">❌</span>
+                    <span>At least one uppercase letter (A-Z)</span>
+                  </div>
+                  <div id="lowercaseCheck" class="flex items-center gap-2">
+                    <span id="lowercaseCheckIcon">❌</span>
+                    <span>At least one lowercase letter (a-z)</span>
+                  </div>
+                  <div id="numberCheck" class="flex items-center gap-2">
+                    <span id="numberCheckIcon">❌</span>
+                    <span>At least one number (0-9)</span>
+                  </div>
+                  <div id="specialCheck" class="flex items-center gap-2">
+                    <span id="specialCheckIcon">❌</span>
+                    <span>At least one special symbol (!@#$%^&*)</span>
+                  </div>
+                </div>
+                <div class="mt-3 bg-gray-100 rounded-lg p-3">
+                  <div class="text-sm font-semibold mb-2">Strength: <span id="strengthText">Very Weak</span></div>
+                  <div class="w-full bg-gray-300 rounded-full h-2">
+                    <div id="strengthBar" class="bg-red-500 h-2 rounded-full transition-all" style="width: 0%"></div>
+                  </div>
+                </div>
+              </div>
+              <div id="registerPasswordError" class="error-msg"></div>
+            </div>
+
+            <!-- Confirm Password -->
+            <div class="mb-5">
+              <label class="block font-bold text-gray-700 mb-2">Confirm Password</label>
+              <input type="password" id="registerConfirmPassword" class="input-field" placeholder="••••••••" required>
+              <div id="registerConfirmError" class="error-msg"></div>
+            </div>
+
+            <!-- Skills (for students) -->
+            <div id="skillsSection" class="mb-5">
+              <label class="block font-bold text-gray-700 mb-3">Your Skills 💻</label>
+              <div class="flex flex-wrap gap-2">
+                <button type="button" class="skill-badge" data-skill="html" onclick="toggleSkill('html')">HTML</button>
+                <button type="button" class="skill-badge" data-skill="css" onclick="toggleSkill('css')">CSS</button>
+                <button type="button" class="skill-badge" data-skill="javascript" onclick="toggleSkill('javascript')">JavaScript</button>
+                <button type="button" class="skill-badge" data-skill="react" onclick="toggleSkill('react')">React</button>
+                <button type="button" class="skill-badge" data-skill="nodejs" onclick="toggleSkill('nodejs')">Node.js</button>
+                <button type="button" class="skill-badge" data-skill="python" onclick="toggleSkill('python')">Python</button>
+              </div>
+              <input type="hidden" id="selectedSkills" value="">
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="btn-primary w-full py-3 text-lg font-bold">
+              Create Account 🚀
+            </button>
+
+            <div id="registerError" class="error-msg text-center"></div>
+            <div id="registerSuccess" class="text-green-600 text-center font-bold"></div>
+          </form>
+
+          <!-- Login Link -->
+          <p class="text-center text-gray-600">
+            Already have an account? 
+            <button type="button" onclick="switchTab('login')" class="text-purple-500 font-bold hover:underline">Login here</button>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000/api';
+    let selectedSkills = [];
+
+    function switchTab(tab) {
+      const loginForm = document.getElementById('loginForm');
+      const registerForm = document.getElementById('registerForm');
+      const loginTab = document.getElementById('loginTab');
+      const registerTab = document.getElementById('registerTab');
+
+      if (tab === 'login') {
+        loginForm.classList.remove('hidden');
+        registerForm.classList.add('hidden');
+        loginTab.classList.add('border-purple-500', 'text-purple-500');
+        loginTab.classList.remove('border-gray-200', 'text-gray-400');
+        registerTab.classList.add('border-gray-200', 'text-gray-400');
+        registerTab.classList.remove('border-purple-500', 'text-purple-500');
+      } else {
+        registerForm.classList.remove('hidden');
+        loginForm.classList.add('hidden');
+        registerTab.classList.add('border-purple-500', 'text-purple-500');
+        registerTab.classList.remove('border-gray-200', 'text-gray-400');
+        loginTab.classList.add('border-gray-200', 'text-gray-400');
+        loginTab.classList.remove('border-purple-500', 'text-purple-500');
+      }
+    }
+
+    function selectRole(role, form) {
+      const roleInput = document.getElementById(`${form}Role`);
+      roleInput.value = role;
+
+      document.querySelectorAll(`#${form}Form .role-chip`).forEach(chip => {
+        if (chip.dataset.role === role) {
+          chip.classList.add('active');
+        } else {
+          chip.classList.remove('active');
+        }
+      });
+    }
+
+    function toggleSkill(skill) {
+      const index = selectedSkills.indexOf(skill);
+      if (index === -1) {
+        selectedSkills.push(skill);
+      } else {
+        selectedSkills.splice(index, 1);
+      }
+
+      document.querySelectorAll('[data-skill]').forEach(badge => {
+        if (selectedSkills.includes(badge.dataset.skill)) {
+          badge.classList.add('selected');
+        } else {
+          badge.classList.remove('selected');
+        }
+      });
+
+      document.getElementById('selectedSkills').value = selectedSkills.join(',');
+    }
+
+    async function handleLogin(event) {
+      event.preventDefault();
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      const role = document.getElementById('loginRole').value;
+
+      clearLoginErrors();
+
+      try {
+        const response = await fetch(`${API_URL}/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, role })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          document.getElementById('loginError').textContent = data.error;
+          return;
+        }
+
+        document.getElementById('loginSuccess').textContent = '✅ ' + data.message;
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+
+        setTimeout(() => {
+          if (role === 'admin') {
+            window.location.href = '/admin-dashboard.html';
+          } else if (role === 'trainer') {
+            window.location.href = '/trainer-dashboard.html';
+          } else {
+            window.location.href = '/student-dashboard.html';
+          }
+        }, 1500);
+      } catch (error) {
+        document.getElementById('loginError').textContent = '❌ Network error: ' + error.message;
+      }
+    }
+
+    async function handleRegister(event) {
+      event.preventDefault();
+      const name = document.getElementById('registerName').value;
+      const email = document.getElementById('registerEmail').value;
+      const phone = document.getElementById('registerPhone').value;
+      const password = document.getElementById('registerPassword').value;
+      const confirmPassword = document.getElementById('registerConfirmPassword').value;
+      const role = document.getElementById('registerRole').value;
+
+      clearRegisterErrors();
+
+      // Validate passwords match
+      if (password !== confirmPassword) {
+        document.getElementById('registerConfirmError').textContent = '❌ Passwords do not match!';
+        return;
+      }
+
+      // Validate password strength
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.isValid) {
+        document.getElementById('registerPasswordError').textContent = '❌ ' + passwordValidation.errors[0];
+        return;
+      }
+
+      // Validate phone number
+      if (!phone || phone.trim().length < 10) {
+        document.getElementById('registerPhoneError').textContent = '❌ Please enter a valid phone number!';
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            name, 
+            email, 
+            phone,
+            password, 
+            confirmPassword, 
+            role, 
+            skills: selectedSkills 
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          document.getElementById('registerError').textContent = data.error;
+          return;
+        }
+
+        document.getElementById('registerSuccess').textContent = '✅ ' + data.message;
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+
+        setTimeout(() => {
+          if (role === 'admin') {
+            window.location.href = '/admin-dashboard.html';
+          } else if (role === 'trainer') {
+            window.location.href = '/trainer-dashboard.html';
+          } else {
+            window.location.href = '/student-dashboard.html';
+          }
+        }, 1500);
+      } catch (error) {
+        document.getElementById('registerError').textContent = '❌ Network error: ' + error.message;
+      }
+    }
+
+    function validatePassword(password) {
+      const errors = [];
+      
+      if (password.length < 8) {
+        errors.push('Password must be at least 8 characters');
+      }
+      if (!/[A-Z]/.test(password)) {
+        errors.push('Password must contain at least one uppercase letter (A-Z)');
+      }
+      if (!/[a-z]/.test(password)) {
+        errors.push('Password must contain at least one lowercase letter (a-z)');
+      }
+      if (!/[0-9]/.test(password)) {
+        errors.push('Password must contain at least one number (0-9)');
+      }
+      if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+        errors.push('Password must contain at least one special symbol (!@#$%^&* etc.)');
+      }
+
+      return {
+        isValid: errors.length === 0,
+        errors: errors
+      };
+    }
+
+    function validatePasswordStrength() {
+      const password = document.getElementById('registerPassword').value;
+      const container = document.getElementById('passwordStrengthContainer');
+
+      if (password.length === 0) {
+        container.classList.add('hidden');
+        return;
+      }
+
+      container.classList.remove('hidden');
+
+      // Check each requirement
+      const lengthCheck = password.length >= 8;
+      const uppercaseCheck = /[A-Z]/.test(password);
+      const lowercaseCheck = /[a-z]/.test(password);
+      const numberCheck = /[0-9]/.test(password);
+      const specialCheck = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+
+      // Update UI
+      updateCheckUI('lengthCheck', lengthCheck);
+      updateCheckUI('uppercaseCheck', uppercaseCheck);
+      updateCheckUI('lowercaseCheck', lowercaseCheck);
+      updateCheckUI('numberCheck', numberCheck);
+      updateCheckUI('specialCheck', specialCheck);
+
+      // Calculate strength
+      const checks = [lengthCheck, uppercaseCheck, lowercaseCheck, numberCheck, specialCheck];
+      const strength = checks.filter(Boolean).length;
+      updateStrengthDisplay(strength);
+    }
+
+    function updateCheckUI(elementId, isValid) {
+      const element = document.getElementById(elementId);
+      const icon = document.getElementById(elementId + 'Icon');
+      if (isValid) {
+        element.classList.add('text-green-600');
+        element.classList.remove('text-red-600');
+        icon.textContent = '✅';
+      } else {
+        element.classList.add('text-red-600');
+        element.classList.remove('text-green-600');
+        icon.textContent = '❌';
+      }
+    }
+
+    function updateStrengthDisplay(strength) {
+      const strengthText = document.getElementById('strengthText');
+      const strengthBar = document.getElementById('strengthBar');
+      const strengthMap = {
+        1: { text: 'Very Weak', color: 'bg-red-500', width: '20%' },
+        2: { text: 'Weak', color: 'bg-orange-500', width: '40%' },
+        3: { text: 'Fair', color: 'bg-yellow-500', width: '60%' },
+        4: { text: 'Good', color: 'bg-blue-500', width: '80%' },
+        5: { text: 'Very Strong', color: 'bg-green-500', width: '100%' }
+      };
+
+      const map = strengthMap[strength] || strengthMap[1];
+      strengthText.textContent = map.text;
+      strengthBar.className = `${map.color} h-2 rounded-full transition-all`;
+      strengthBar.style.width = map.width;
+    }
+
+    function clearLoginErrors() {
+      document.getElementById('loginEmailError').textContent = '';
+      document.getElementById('loginPasswordError').textContent = '';
+      document.getElementById('loginError').textContent = '';
+      document.getElementById('loginSuccess').textContent = '';
+    }
+
+    function clearRegisterErrors() {
+      document.getElementById('registerNameError').textContent = '';
+      document.getElementById('registerEmailError').textContent = '';
+      document.getElementById('registerPhoneError').textContent = '';
+      document.getElementById('registerPasswordError').textContent = '';
+      document.getElementById('registerConfirmError').textContent = '';
+      document.getElementById('registerError').textContent = '';
+      document.getElementById('registerSuccess').textContent = '';
+    }
+
+    // Check if user is already logged in
+    window.addEventListener('load', () => {
+      const token = localStorage.getItem('token');
+      const user = localStorage.getItem('user');
+      if (token && user) {
+        const userData = JSON.parse(user);
+        if (userData.role === 'admin') {
+          window.location.href = '/admin-dashboard.html';
+        } else if (userData.role === 'trainer') {
+          window.location.href = '/trainer-dashboard.html';
+        } else {
+          window.location.href = '/student-dashboard.html';
+        }
+      }
+    });
+  </script>
+</body>
+</html>
