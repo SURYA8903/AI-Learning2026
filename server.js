@@ -103,6 +103,29 @@ const db = new sqlite3.Database('./database.db', (err) => {
   else console.log('✅ Database connected!');
 });
 
+const ensureUsersTablePhoneColumn = () => {
+  db.all('PRAGMA table_info(users)', (err, columns) => {
+    if (err) {
+      console.error('Failed to inspect users table schema:', err.message);
+      return;
+    }
+
+    const hasPhoneColumn = (columns || []).some((column) => column.name === 'phone');
+    if (hasPhoneColumn) {
+      return;
+    }
+
+    db.run('ALTER TABLE users ADD COLUMN phone TEXT', (alterErr) => {
+      if (alterErr) {
+        console.error('Failed to add phone column to users table:', alterErr.message);
+        return;
+      }
+
+      console.log('Added missing phone column to users table.');
+    });
+  });
+};
+
 // Create Tables
 const initializeDatabase = () => {
   db.serialize(() => {
@@ -119,6 +142,8 @@ const initializeDatabase = () => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    ensureUsersTablePhoneColumn();
 
     // Courses Table
     db.run(`
@@ -344,6 +369,7 @@ app.post('/api/register', (req, res) => {
       [name, email, phone, hash, role, skillsStr],
       function(err) {
         if (err) {
+          console.error('Registration failed:', err.message);
           if (err.message.includes('UNIQUE')) {
             return res.status(400).json({ error: '❌ Email already registered!' });
           }
