@@ -1,3 +1,5 @@
+require('dotenv').config(); // Load ANTHROPIC_API_KEY from .env
+
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcryptjs');
@@ -1205,6 +1207,132 @@ app.put('/api/admin/settings', (req, res) => {
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
+// ============= AI MODULE: COURSE RECOMMENDATION ENGINE =============
+// Extracted from partner project — recommend() logic + /api/recommend + /api/ask-doubt routes
+
+const AI_COURSES = [
+  { id:1,  title:"Python for Beginners",           category:"Programming",     level:"Beginner",     duration:"6 weeks",  rating:4.8, students:12400, icon:"🐍",    tags:["python","beginner","programming"], topics:["Variables","Loops","Functions","OOP","File Handling"], desc:"Learn Python from scratch." },
+  { id:2,  title:"Data Science with Python",       category:"Data Science",    level:"Intermediate", duration:"10 weeks", rating:4.9, students:9800,  icon:"📊",    tags:["python","data science","pandas","numpy"], topics:["NumPy","Pandas","Matplotlib","Statistics","EDA"], desc:"Master data analysis and visualization." },
+  { id:3,  title:"Machine Learning A-Z",           category:"AI / ML",        level:"Intermediate", duration:"12 weeks", rating:4.7, students:15200, icon:"🤖",    tags:["python","machine learning","ai","scikit-learn"], topics:["Regression","Trees","SVM","Clustering","Evaluation"], desc:"Build real ML models with Scikit-learn." },
+  { id:4,  title:"Deep Learning & Neural Networks",category:"AI / ML",        level:"Advanced",     duration:"16 weeks", rating:4.9, students:7400,  icon:"🧠",    tags:["python","deep learning","tensorflow","ai"], topics:["CNN","RNN","LSTM","Transfer Learning"], desc:"Neural networks with TensorFlow." },
+  { id:5,  title:"Natural Language Processing",    category:"AI / ML",        level:"Advanced",     duration:"10 weeks", rating:4.8, students:5600,  icon:"💬",    tags:["python","nlp","ai","bert"], topics:["Tokenization","NER","BERT","Text Classification"], desc:"NLP with Python and Transformers." },
+  { id:6,  title:"Python DSA & Algorithms",        category:"Computer Science",level:"Intermediate", duration:"8 weeks",  rating:4.7, students:11000, icon:"🧮",    tags:["python","algorithms","dsa"], topics:["Arrays","Trees","Graphs","DP","Sorting"], desc:"Master DSA for coding interviews." },
+  { id:7,  title:"Web Development Bootcamp",       category:"Web Development", level:"Beginner",     duration:"14 weeks", rating:4.8, students:22100, icon:"🌐",    tags:["html","css","javascript","web development","beginner"], topics:["HTML5","CSS3","JavaScript","Bootstrap","Node.js"], desc:"Complete web development course." },
+  { id:8,  title:"Advanced CSS & Animations",      category:"Web Development", level:"Intermediate", duration:"5 weeks",  rating:4.6, students:6700,  icon:"🎨",    tags:["css","html","animations","web development"], topics:["CSS Grid","Flexbox","Animations","SASS"], desc:"Master modern CSS layouts." },
+  { id:9,  title:"JavaScript: The Complete Guide", category:"Web Development", level:"Intermediate", duration:"8 weeks",  rating:4.9, students:18900, icon:"⚡",    tags:["javascript","html","css","web development"], topics:["ES6+","DOM","Promises","Async/Await"], desc:"Modern JavaScript deep dive." },
+  { id:10, title:"React.js for Frontend Devs",     category:"Web Development", level:"Intermediate", duration:"8 weeks",  rating:4.8, students:14600, icon:"⚛️",   tags:["javascript","react","frontend"], topics:["Components","Hooks","Redux","React Router"], desc:"Build UIs with React." },
+  { id:11, title:"Node.js & Express Backend",      category:"Web Development", level:"Intermediate", duration:"7 weeks",  rating:4.7, students:9200,  icon:"🟢",    tags:["javascript","nodejs","express","backend"], topics:["Node.js Core","REST APIs","Middleware","Auth"], desc:"Backend APIs with Node.js." },
+  { id:12, title:"TypeScript for JS Developers",   category:"Web Development", level:"Intermediate", duration:"5 weeks",  rating:4.7, students:7800,  icon:"🔷",    tags:["typescript","javascript","frontend"], topics:["Types","Generics","Decorators","TS with React"], desc:"Strong typing for JavaScript." },
+  { id:13, title:"Java Backend Development",       category:"Backend",         level:"Intermediate", duration:"10 weeks", rating:4.7, students:8300,  icon:"☕",    tags:["java","backend","spring boot","microservices"], topics:["Spring Boot","REST APIs","Spring Security","JPA"], desc:"Backend with Java and Spring Boot." },
+  { id:14, title:"Java DSA & Algorithms",          category:"Computer Science",level:"Intermediate", duration:"8 weeks",  rating:4.8, students:11200, icon:"☕🧮",  tags:["java","algorithms","dsa"], topics:["Trees","Graphs","DP","Heaps"], desc:"Java-based DSA for interviews." },
+  { id:15, title:"Java for Beginners",             category:"Programming",     level:"Beginner",     duration:"6 weeks",  rating:4.6, students:13500, icon:"☕🚀",  tags:["java","beginner","programming"], topics:["Syntax","OOP","Collections","Exception Handling"], desc:"Start learning Java from zero." },
+  { id:16, title:"SQL & Database Design",          category:"Database",        level:"Beginner",     duration:"5 weeks",  rating:4.6, students:9900,  icon:"🗄️",   tags:["sql","database","beginner","mysql"], topics:["SELECT","JOINs","Indexes","Normalization"], desc:"SQL from basics to advanced queries." },
+  { id:17, title:"MongoDB for Developers",         category:"Database",        level:"Intermediate", duration:"4 weeks",  rating:4.5, students:6100,  icon:"🍃",    tags:["mongodb","database","nosql","nodejs"], topics:["CRUD","Aggregations","Indexing","Mongoose"], desc:"NoSQL database with MongoDB." },
+  { id:18, title:"Docker & Kubernetes",            category:"DevOps",          level:"Intermediate", duration:"6 weeks",  rating:4.8, students:7200,  icon:"🐳",    tags:["docker","kubernetes","devops","containers"], topics:["Dockerfiles","Compose","K8s Pods","Helm"], desc:"Containerization and orchestration." },
+  { id:19, title:"AWS Cloud Practitioner",         category:"Cloud",           level:"Beginner",     duration:"6 weeks",  rating:4.7, students:10300, icon:"☁️",    tags:["aws","cloud","devops","beginner"], topics:["EC2","S3","Lambda","IAM","RDS"], desc:"AWS cloud fundamentals." },
+  { id:20, title:"Android with Kotlin",            category:"Mobile",          level:"Intermediate", duration:"10 weeks", rating:4.7, students:8800,  icon:"📱",    tags:["android","kotlin","mobile","app development"], topics:["Kotlin","RecyclerView","Retrofit","Room DB"], desc:"Build Android apps with Kotlin." },
+  { id:21, title:"Flutter & Dart",                 category:"Mobile",          level:"Intermediate", duration:"10 weeks", rating:4.8, students:9500,  icon:"🦋",    tags:["flutter","dart","mobile","ios","android"], topics:["Widgets","State Management","Firebase","Navigation"], desc:"Cross-platform apps with Flutter." },
+  { id:22, title:"Cybersecurity Fundamentals",     category:"Cybersecurity",   level:"Beginner",     duration:"6 weeks",  rating:4.6, students:7600,  icon:"🔒",    tags:["cybersecurity","security","hacking","beginner"], topics:["Encryption","Firewalls","Network Security","Ethical Hacking"], desc:"Core cybersecurity concepts." },
+  { id:23, title:"UI/UX Design with Figma",        category:"Design",          level:"Beginner",     duration:"7 weeks",  rating:4.7, students:11400, icon:"🎭",    tags:["figma","ui","ux","design","beginner"], topics:["Wireframing","Prototyping","Design Systems","User Research"], desc:"UI/UX design and Figma from scratch." },
+  { id:24, title:"Beginner Programming Fundamentals",category:"Programming",   level:"Beginner",     duration:"4 weeks",  rating:4.5, students:30100, icon:"🚀",    tags:["beginner","programming","fundamentals"], topics:["Logic","Variables","Loops","Functions"], desc:"Your first step into programming." },
+  { id:25, title:"Git & GitHub for Developers",    category:"Tools",           level:"Beginner",     duration:"2 weeks",  rating:4.8, students:25600, icon:"🐙",    tags:["git","github","version control","beginner"], topics:["Commit","Branching","Merging","Pull Requests"], desc:"Master version control with Git." }
+];
+
+function aiRecommend(input) {
+  input = input.toLowerCase();
+  const words = input.split(/[\s,;+&|]+/).filter(w => w.length > 1);
+  const rules = {
+    "python":[1,2,3,6,4],"data science":[2,3,4,5],"machine learning":[3,4,2,5],"ml":[3,4,2],
+    "deep learning":[4,3,5],"neural":[4,3],"tensorflow":[4,3],"ai":[3,4,5,2],
+    "nlp":[5,4,3],"bert":[5,4],"html":[7,8,9],"css":[7,8,9],"javascript":[9,7,10,11],
+    "js":[9,7,10],"react":[10,9,12],"nodejs":[11,9],"node":[11,9],"express":[11,9],
+    "typescript":[12,9],"web":[7,9,10,11],"frontend":[7,8,9,10],"backend":[11,13,16,17],
+    "java":[13,14,15],"spring":[13],"kotlin":[20],"android":[20,21],
+    "sql":[16,17],"database":[16,17],"mongodb":[17,11],"nosql":[17],
+    "docker":[18,19],"kubernetes":[18],"devops":[18,19,25],"aws":[19,18],"cloud":[19,18],
+    "mobile":[20,21],"flutter":[21],"dart":[21],"ios":[21],
+    "cybersecurity":[22],"security":[22],"hacking":[22],
+    "figma":[23],"design":[23],"ux":[23],"ui":[23,7],
+    "algorithms":[6,14],"dsa":[6,14],"beginner":[24,1,7,15],
+    "git":[25],"github":[25]
+  };
+  const scores = {};
+  for (const [phrase, ids] of Object.entries(rules)) {
+    if (input.includes(phrase)) ids.forEach((id,i) => { scores[id] = (scores[id]||0) + ids.length - i + 3; });
+  }
+  words.forEach(word => {
+    for (const [phrase, ids] of Object.entries(rules)) {
+      if (phrase === word || phrase.includes(word) || word.includes(phrase))
+        ids.forEach((id,i) => { scores[id] = (scores[id]||0) + ids.length - i + 1; });
+    }
+  });
+  if (!Object.keys(scores).length) return AI_COURSES.filter(c => c.level==="Beginner").slice(0,4);
+  return Object.entries(scores).sort((a,b)=>b[1]-a[1]).slice(0,6)
+    .map(([id]) => AI_COURSES.find(c => c.id===parseInt(id))).filter(Boolean);
+}
+
+// POST /api/recommend — AI Course Recommendation
+app.post('/api/recommend', (req, res) => {
+  const skills = (req.body.skills || req.body.query || '').trim();
+  if (!skills) return res.status(400).json({ error: 'Skills or interests are required.' });
+  const recommendations = aiRecommend(skills);
+  res.json({ success: true, recommendations });
+});
+
+// POST /api/ask-doubt — 24/7 AI Doubt Solver
+app.post('/api/ask-doubt', async (req, res) => {
+  const { question, courseContext, history } = req.body;
+  if (!question?.trim()) return res.status(400).json({ error: 'Question is required.' });
+
+  const contextNote = courseContext
+    ? `The student is studying: "${courseContext.title}" (${courseContext.category}, ${courseContext.level} level). Topics: ${courseContext.topics?.join(', ')}.`
+    : 'The student is on a programming/tech learning platform.';
+
+  const systemPrompt = `You are a friendly, expert programming tutor available 24/7 to solve student doubts. ${contextNote}
+Answer clearly with code examples when helpful. Format code with triple backticks. Be beginner-friendly.`;
+
+  const messages = [];
+  if (Array.isArray(history)) {
+    history.slice(-6).forEach(m => messages.push({ role: m.role, content: m.content }));
+  }
+  messages.push({ role: 'user', content: question });
+
+  try {
+    const apiRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1024, system: systemPrompt, messages })
+    });
+
+    if (!apiRes.ok) {
+      if (apiRes.status === 401 || apiRes.status === 403) {
+        return res.json({ success: true, answer: aiRuleBasedAnswer(question, courseContext), fallback: true });
+      }
+      return res.status(500).json({ error: 'AI service error.' });
+    }
+
+    const data = await apiRes.json();
+    res.json({ success: true, answer: data.content?.[0]?.text || 'Sorry, could not generate a response.' });
+  } catch(e) {
+    res.json({ success: true, answer: aiRuleBasedAnswer(question, courseContext), fallback: true });
+  }
+});
+
+function aiRuleBasedAnswer(question, ctx) {
+  const q = question.toLowerCase();
+  if (q.includes('variable')) return 'A **variable** stores a value. Example: `x = 10` stores 10 in x.';
+  if (q.includes('loop') || q.includes('for loop') || q.includes('while')) return 'A **loop** repeats code:\n\n```python\nfor i in range(5):\n    print(i)  # 0 to 4\n```';
+  if (q.includes('function') || q.includes('def ')) return 'A **function** is reusable code:\n\n```python\ndef greet(name):\n    return "Hello, " + name\nprint(greet("Alice"))\n```';
+  if (q.includes('class') || q.includes('oop')) return '**OOP** with classes:\n\n```python\nclass Dog:\n    def __init__(self, name): self.name = name\n    def bark(self): return self.name + " says Woof!"\nprint(Dog("Rex").bark())\n```';
+  if (q.includes('git') || q.includes('github')) return '**Git basics:**\n```bash\ngit init\ngit add .\ngit commit -m "message"\ngit push origin main\n```';
+  if (ctx) return `Good question about **${ctx.title}**! Review the course material and rephrase with your specific code or error for a precise answer. 💪`;
+  return 'Great question! Share: **1)** What you want to do, **2)** What you tried, **3)** Any error message. 😊';
+}
 
 // 404 Handler
 app.use((req, res) => {

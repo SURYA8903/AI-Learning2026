@@ -109,6 +109,7 @@
       <nav class="flex-1 space-y-2">
         <div class="nav-item active" data-nav="dashboard" onclick="showSection('dashboard', event)">Dashboard</div>
         <div class="nav-item" data-nav="courses" onclick="showSection('courses', event)">My Courses</div>
+        <div class="nav-item" data-nav="ai-recommend" onclick="showSection('ai-recommend', event)">Recommendations</div>
         <div class="nav-item" data-nav="todos" onclick="showSection('todos', event)">To-Do List</div>
         <div class="nav-item" data-nav="achievements" onclick="showSection('achievements', event)">Achievements</div>
         <div class="nav-item" data-nav="settings" onclick="showSection('settings', event)">Settings</div>
@@ -168,6 +169,57 @@
           <h2 class="text-3xl font-black text-gray-900 mb-6">My Enrolled Courses</h2>
           <div id="enrolledCoursesList" class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="text-center py-8 text-gray-500 col-span-full">Loading your courses...</div>
+          </div>
+        </section>
+
+        <!-- ── AI COURSE RECOMMENDATION SECTION ─────────────────────────────── -->
+        <!-- Integrated from partner project's recommendation engine              -->
+        <section data-section="ai-recommend" class="section hidden space-y-8">
+          <div>
+            <h2 class="text-3xl font-black text-gray-900 mb-2">AI Course Recommendations</h2>
+            <p class="text-gray-600">Tell us your interests or skills and our AI will suggest the best courses for you.</p>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-sm border-2 border-gray-100 p-6">
+            <label class="block text-sm font-bold text-gray-700 mb-2">What do you want to learn? (e.g. Python, React, Machine Learning)</label>
+            <div class="flex gap-3">
+              <input
+                id="recommendInput"
+                type="text"
+                placeholder="e.g. python, machine learning, web development..."
+                class="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl text-sm focus:outline-none focus:border-purple-500 transition"
+                onkeydown="if(event.key==='Enter') getRecommendations()"
+              />
+              <button
+                onclick="getRecommendations()"
+                class="btn-primary px-6 py-3 whitespace-nowrap"
+              >
+                Get Recommendations
+              </button>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <span class="text-xs text-gray-500">Try:</span>
+              <button onclick="quickRecommend('python beginner')" class="text-xs bg-purple-50 text-purple-700 px-3 py-1 rounded-full hover:bg-purple-100 transition">Python Beginner</button>
+              <button onclick="quickRecommend('machine learning ai')" class="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full hover:bg-blue-100 transition">Machine Learning</button>
+              <button onclick="quickRecommend('web development javascript react')" class="text-xs bg-green-50 text-green-700 px-3 py-1 rounded-full hover:bg-green-100 transition">Web Dev</button>
+              <button onclick="quickRecommend('data science')" class="text-xs bg-orange-50 text-orange-700 px-3 py-1 rounded-full hover:bg-orange-100 transition">Data Science</button>
+              <button onclick="quickRecommend('devops docker aws')" class="text-xs bg-cyan-50 text-cyan-700 px-3 py-1 rounded-full hover:bg-cyan-100 transition">DevOps</button>
+            </div>
+          </div>
+
+          <div id="recommendResults" class="hidden">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Recommended Courses For You</h3>
+            <div id="recommendGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
+          </div>
+
+          <div id="recommendLoading" class="hidden text-center py-12">
+            <div class="text-4xl mb-3 animate-pulse"></div>
+            <p class="text-gray-500 font-medium">Finding the best courses for you...</p>
+          </div>
+
+          <div id="recommendEmpty" class="hidden text-center py-12 text-gray-500">
+            <div class="text-4xl mb-3">🔍</div>
+            <p>No courses found for that search. Try different keywords!</p>
           </div>
         </section>
 
@@ -675,6 +727,92 @@
 
       await Promise.all([loadCourses(), loadTodos()]);
     });
+
+    // ── AI RECOMMENDATION FUNCTIONS ──────────────────────────────────────────
+    // Connected to /api/recommend endpoint (added to teammate's server.js)
+    async function getRecommendations() {
+      const input = document.getElementById('recommendInput').value.trim();
+      if (!input) {
+        alert('Please enter your skills or interests first.');
+        return;
+      }
+
+      document.getElementById('recommendResults').classList.add('hidden');
+      document.getElementById('recommendEmpty').classList.add('hidden');
+      document.getElementById('recommendLoading').classList.remove('hidden');
+
+      try {
+        const res = await fetch('/api/recommend', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ skills: input })
+        });
+        const data = await res.json();
+
+        document.getElementById('recommendLoading').classList.add('hidden');
+
+        if (data.success && data.recommendations && data.recommendations.length > 0) {
+          renderRecommendations(data.recommendations);
+        } else {
+          document.getElementById('recommendEmpty').classList.remove('hidden');
+        }
+      } catch (err) {
+        document.getElementById('recommendLoading').classList.add('hidden');
+        document.getElementById('recommendEmpty').classList.remove('hidden');
+        console.error('Recommendation error:', err);
+      }
+    }
+
+    function quickRecommend(text) {
+      document.getElementById('recommendInput').value = text;
+      getRecommendations();
+    }
+
+    function renderRecommendations(courses) {
+      const grid = document.getElementById('recommendGrid');
+      const levelColors = { Beginner: 'bg-green-100 text-green-700', Intermediate: 'bg-yellow-100 text-yellow-700', Advanced: 'bg-red-100 text-red-700' };
+
+      grid.innerHTML = courses.map(course => `
+        <div class="bg-white rounded-2xl shadow-sm border-2 border-gray-100 p-5 hover:border-purple-200 transition-all hover:shadow-md flex flex-col gap-3">
+          <div class="flex items-center gap-3">
+            <span class="text-3xl">${course.icon || '📚'}</span>
+            <div class="flex-1 min-w-0">
+              <h4 class="font-bold text-gray-900 text-sm leading-tight">${course.title}</h4>
+              <span class="text-xs text-gray-500">${course.category}</span>
+            </div>
+          </div>
+          <p class="text-xs text-gray-600 leading-relaxed">${course.desc}</p>
+          <div class="flex flex-wrap gap-2 text-xs">
+            <span class="px-2 py-1 rounded-full ${levelColors[course.level] || 'bg-gray-100 text-gray-600'}">${course.level}</span>
+            <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded-full">⏱ ${course.duration}</span>
+            <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded-full">⭐ ${course.rating}</span>
+          </div>
+          <div class="flex flex-wrap gap-1">
+            ${(course.topics || []).slice(0, 4).map(t => `<span class="text-xs bg-purple-50 text-purple-600 px-2 py-0.5 rounded">${t}</span>`).join('')}
+          </div>
+          <button onclick="askDoubtAboutCourse(${JSON.stringify(course).replace(/"/g, '&quot;')})"
+            class="mt-auto text-sm text-purple-600 font-semibold hover:underline text-left">
+            🤖 Ask about this course →
+          </button>
+        </div>
+      `).join('');
+
+      document.getElementById('recommendResults').classList.remove('hidden');
+    }
+
+    // Opens the doubt widget pre-set to a recommended course context
+    function askDoubtAboutCourse(course) {
+      if (window.DoubtWidget) {
+        DoubtWidget.setCourse(course);
+        if (!document.getElementById('doubtPanel').classList.contains('open')) {
+          DoubtWidget.toggle();
+        }
+      }
+    }
   </script>
+
+  <!-- ── AI DOUBT SOLVER WIDGET ──────────────────────────────────────────── -->
+  <!-- Source: partner project's doubt-widget.js, endpoint updated to /api/ask-doubt -->
+  <script src="/doubt-widget.js"></script>
 </body>
 </html>
