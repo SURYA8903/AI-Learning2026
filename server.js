@@ -103,8 +103,47 @@ const db = new sqlite3.Database('./database.db', (err) => {
   else console.log('✅ Database connected!');
 });
 
+const ensureUserColumns = (callback) => {
+  db.all('PRAGMA table_info(users)', (err, columns) => {
+    if (err) {
+      callback(err);
+      return;
+    }
+
+    const existingColumns = new Set(columns.map((column) => column.name));
+    const missingColumns = [];
+
+    if (!existingColumns.has('phone')) {
+      missingColumns.push('ALTER TABLE users ADD COLUMN phone TEXT');
+    }
+
+    if (!existingColumns.has('skills')) {
+      missingColumns.push('ALTER TABLE users ADD COLUMN skills TEXT');
+    }
+
+    const applyNextMigration = () => {
+      if (missingColumns.length === 0) {
+        callback(null);
+        return;
+      }
+
+      const sql = missingColumns.shift();
+      db.run(sql, (migrationErr) => {
+        if (migrationErr && !/duplicate column name/i.test(migrationErr.message)) {
+          callback(migrationErr);
+          return;
+        }
+
+        applyNextMigration();
+      });
+    };
+
+    applyNextMigration();
+  });
+};
+
 // Create Tables
-const initializeDatabase = () => {
+const initializeDatabase = (callback) => {
   db.serialize(() => {
     // Users Table
     db.run(`
@@ -240,11 +279,17 @@ const initializeDatabase = () => {
       );
     });
 
-    console.log('✅ Database initialized with tables and sample data');
+    ensureUserColumns((err) => {
+      if (err) {
+        callback(err);
+        return;
+      }
+
+      console.log('✅ Database initialized with tables and sample data');
+      callback(null);
+    });
   });
 };
-
-initializeDatabase();
 
 const seedTrainerExtras = () => {
   db.all('SELECT id FROM users WHERE role = "trainer"', (err, trainers) => {
@@ -1212,9 +1257,16 @@ app.use((req, res) => {
 });
 
 // Start Server
-app.listen(PORT, () => {
-  console.log(`\n🚀 AI Learning Platform Server Running!`);
-  console.log(`📍 Frontend: http://localhost:${PORT}`);
-  console.log(`📍 API Base: http://localhost:${PORT}/api`);
-  console.log(`\n✅ Ready to accept requests!\n`);
+initializeDatabase((err) => {
+  if (err) {
+    console.error('Failed to initialize database schema:', err.message);
+    process.exit(1);
+  }
+
+  app.listen(PORT, () => {
+    console.log(`\n🚀 AI Learning Platform Server Running!`);
+    console.log(`📍 Frontend: http://localhost:${PORT}`);
+    console.log(`📍 API Base: http://localhost:${PORT}/api`);
+    console.log(`\n✅ Ready to accept requests!\n`);
+  });
 });
