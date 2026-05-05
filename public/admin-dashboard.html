@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Adz4Needz</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    h1, h2, h3, h4, h5, h6 { font-family: 'Poppins', sans-serif; }
+
+    .aqua-gradient { background: linear-gradient(135deg, #0093E9 0%, #00C9A7 100%); }
+    .aqua-gradient-text { background: linear-gradient(to right, #0093E9, #00C9A7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+    .nav-item {
+      padding: 12px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      color: #374151;
+    }
+
+    .nav-item.active {
+      background: linear-gradient(135deg, #4F46E5 0%, #06B6D4 100%);
+      color: white;
+      font-weight: 700;
+    }
+
+    .stat-card,
+    .panel-card {
+      background: white;
+      border: 2px solid #E5E7EB;
+      border-radius: 12px;
+      padding: 20px;
+      transition: all 0.3s;
+    }
+
+    .stat-card:hover,
+    .panel-card:hover {
+      border-color: #4F46E5;
+      box-shadow: 0 10px 25px rgba(79, 70, 229, 0.12);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      background: #F3F4F6;
+      padding: 12px;
+      text-align: left;
+      font-weight: bold;
+      color: #4F46E5;
+      border-bottom: 2px solid #E5E7EB;
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #E5E7EB;
+    }
+
+    tr:hover {
+      background: #F9FAFB;
+    }
+
+    .btn-action {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+      margin-right: 6px;
+      font-size: 12px;
+    }
+
+    .btn-edit {
+      background: #DBEAFE;
+      color: #0369A1;
+    }
+
+    .btn-delete {
+      background: #FEE2E2;
+      color: #DC2626;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #4F46E5 0%, #06B6D4 100%);
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(79, 70, 229, 0.3);
+    }
+
+    .input-field,
+    .select-field,
+    .textarea-field {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #E5E7EB;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+
+    .input-field:focus,
+    .select-field:focus,
+    .textarea-field:focus {
+      outline: none;
+      border-color: #4F46E5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      padding: 16px;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 560px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .section.hidden {
+      display: none;
+    }
+  </style>
+  <link rel="stylesheet" href="/premium-ui.css">
+  <script src="/premium-ui.js" defer></script>
+</head>
+<body class="bg-gray-50">
+  <div class="flex h-screen">
+    <aside class="hidden lg:flex lg:w-64 bg-white border-r-2 border-gray-200 flex-col p-6">
+      <div class="mb-8">
+        <span class="text-2xl font-black aqua-gradient-text block">Adz4Needz</span>
+        <p class="text-sm text-gray-500 mt-1">Admin Panel</p>
+      </div>
+
+      <nav class="flex-1 space-y-2">
+        <div class="nav-item active" data-nav="dashboard" onclick="showSection('dashboard', event)">Dashboard</div>
+        <div class="nav-item" data-nav="users" onclick="showSection('users', event)">Users</div>
+        <div class="nav-item" data-nav="courses" onclick="showSection('courses', event)">Courses</div>
+        <div class="nav-item" data-nav="analytics" onclick="showSection('analytics', event)">Analytics</div>
+        <div class="nav-item" data-nav="settings" onclick="showSection('settings', event)">Settings</div>
+      </nav>
+
+      <button onclick="logout()" class="w-full py-2 px-4 bg-red-50 text-red-600 font-bold rounded-lg hover:bg-red-100 transition">
+        Logout
+      </button>
+    </aside>
+
+    <main class="flex-1 overflow-auto">
+      <nav class="bg-white border-b-2 border-gray-200 px-6 py-4 flex justify-between items-center sticky top-0 z-40">
+        <h1 class="text-2xl font-black text-gray-900">Admin Dashboard</h1>
+        <div class="flex items-center gap-4">
+          <span id="userName" class="font-bold text-gray-700"></span>
+          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-red-400 to-orange-400"></div>
+        </div>
+      </nav>
+
+      <div class="p-6 lg:p-8 space-y-8">
+        <section data-section="dashboard" class="section space-y-8">
+          <div>
+            <h2 class="text-3xl font-black text-gray-900 mb-2">Platform Overview</h2>
+            <p></p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="stat-card">
+              <div class="text-3xl mb-2">1</div>
+              <p class="text-gray-600 text-sm">Total Students</p>
+              <p class="text-3xl font-black text-purple-500" id="studentCount"></p>
+            </div>
+            <div class="stat-card">
+              <div class="text-3xl mb-2">2</div>
+              <p class="text-gray-600 text-sm">Trainers</p>
+              <p class="text-3xl font-black text-blue-500" id="trainerCount"</p>
+            </div>
+            <div class="stat-card">
+              <div class="text-3xl mb-2">3</div>
+              <p class="text-gray-600 text-sm">Courses</p>
+              <p class="text-3xl font-black text-green-500" id="courseCount"></p>
+            </div>
+            <div class="stat-card">
+              <div class="text-3xl mb-2">4</div>
+              <p class="text-gray-600 text-sm">Total Revenue</p>
+              <p class="text-3xl font-black text-green-500" id="revenueCount">Rs.0</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div class="panel-card xl:col-span-2">
+              <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-900">Enrollment Trend</h3>
+                <span class="text-sm text-gray-500">Student activity by enrollment date</span>
+              </div>
+              <canvas id="dashboardTrendChart"></canvas>
+            </div>
+            <div class="panel-card space-y-4">
+              <div>
+                <p class="text-sm text-gray-500">Top Trainer</p>
+                <p id="topTrainerCard" class="text-xl font-black text-gray-900">No data yet</p>
+              </div>
+              <div>
+                <p class="text-sm text-gray-500">Top Student</p>
+                <p id="topStudentCard" class="text-xl font-black text-gray-900">No data yet</p>
+              </div>
+              <div>
+                <p class="text-sm text-gray-500">Student Progress Snapshot</p>
+                <p id="progressSummaryCard" class="text-lg font-semibold text-gray-900">No data yet</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section data-section="users" class="section hidden space-y-6">
+          <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+            <div>
+              <h2 class="text-3xl font-black text-gray-900">User Management</h2>
+              <p class="text-gray-600 mt-2"></p>
+            </div>
+            <button onclick="openUserModal()" class="btn-primary ml-auto">Add User</button>
+          </div>
+
+          <div class="panel-card">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <input id="userSearchInput" type="text" class="input-field" placeholder="Search by name or email">
+              <select id="userRoleFilter" class="select-field">
+                <option value="all">All roles</option>
+                <option value="student">Students</option>
+                <option value="trainer">Trainers</option>
+                <option value="admin">Admins</option>
+              </select>
+              <select id="userSortSelect" class="select-field">
+                <option value="created_at:desc">Newest first</option>
+                <option value="created_at:asc">Oldest first</option>
+                <option value="name:asc">Name A-Z</option>
+                <option value="name:desc">Name Z-A</option>
+                <option value="role:asc">Role A-Z</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-lg border-2 border-gray-200 overflow-hidden">
+            <div class="overflow-x-auto">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Joined</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="usersTable">
+                  <tr>
+                    <td colspan="5" class="text-center text-gray-500 py-8">Loading users...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section data-section="courses" class="section hidden space-y-6">
+          <div class="flex justify-between items-center">
+            <div>
+              <h2 class="text-3xl font-black text-gray-900">Courses Management</h2>
+              <p class="text-gray-600 mt-2"></p>
+            </div>
+            <button onclick="openCourseModal()" class="btn-primary ml-auto">Add Course</button>
+          </div>
+
+          <div class="bg-white rounded-lg border-2 border-gray-200 overflow-hidden">
+            <div class="overflow-x-auto">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Instructor</th>
+                    <th>Price</th>
+                    <th>Level</th>
+                    <th>Students</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="coursesTable">
+                  <tr>
+                    <td colspan="6" class="text-center text-gray-500 py-8">Loading courses...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section data-section="analytics" class="section hidden space-y-6">
+          <div>
+            <h2 class="text-3xl font-black text-gray-900">Analytics</h2>
+            <p class="text-gray-600 mt-2">Trainer reach and student activity are visualized from enrollment and progress records.</p>
+          </div>
+
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <div class="panel-card">
+              <h3 class="text-xl font-bold text-gray-900 mb-4">Trainer Performance</h3>
+              <canvas id="trainerChart"></canvas>
+            </div>
+            <div class="panel-card">
+              <h3 class="text-xl font-bold text-gray-900 mb-4">Student Progress Distribution</h3>
+              <canvas id="studentProgressChart"></canvas>
+            </div>
+            <div class="panel-card xl:col-span-2">
+              <h3 class="text-xl font-bold text-gray-900 mb-4">Revenue by Course</h3>
+              <canvas id="courseRevenueChart"></canvas>
+            </div>
+          </div>
+
+          <div class="panel-card">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">Top Students by Progress</h3>
+            <div class="overflow-x-auto">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Student</th>
+                    <th>Enrolled Courses</th>
+                    <th>Average Progress</th>
+                  </tr>
+                </thead>
+                <tbody id="topStudentsTable">
+                  <tr>
+                    <td colspan="3" class="text-center text-gray-500 py-8">Loading analytics...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section data-section="settings" class="section hidden">
+          <div class="max-w-3xl">
+            <div class="mb-6">
+              <h2 class="text-3xl font-black text-gray-900">Settings</h2>
+              <p class="text-gray-600 mt-2">Changes here are saved in the admin settings store and reload when you revisit the dashboard.</p>
+            </div>
+
+            <div class="panel-card">
+              <form id="settingsForm" class="space-y-5" onsubmit="handleSettingsSubmit(event)">
+                <div>
+                  <label class="block font-bold text-gray-700 mb-2">Platform Name</label>
+                  <input id="settingPlatformName" type="text" class="input-field" placeholder="Adz4Needz">
+                </div>
+                <div>
+                  <label class="block font-bold text-gray-700 mb-2">Support Email</label>
+                  <input id="settingSupportEmail" type="email" class="input-field" placeholder="support@example.com">
+                </div>
+                <div>
+                  <label class="block font-bold text-gray-700 mb-2">Announcement Banner</label>
+                  <textarea id="settingAnnouncement" class="textarea-field" rows="4" placeholder="Platform updates or maintenance notes"></textarea>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <label class="flex items-center gap-3 bg-gray-50 rounded-lg p-4">
+                    <input id="settingAllowRegistrations" type="checkbox" class="w-5 h-5">
+                    <span class="font-semibold text-gray-700">Allow New Registrations</span>
+                  </label>
+                  <label class="flex items-center gap-3 bg-gray-50 rounded-lg p-4">
+                    <input id="settingMaintenanceMode" type="checkbox" class="w-5 h-5">
+                    <span class="font-semibold text-gray-700">Maintenance Mode</span>
+                  </label>
+                </div>
+                <div id="settingsMessage" class="text-sm"></div>
+                <button type="submit" class="btn-primary">Save Settings</button>
+              </form>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div id="userModal" class="modal">
+    <div class="modal-content">
+      <div class="flex justify-between items-center mb-4">
+        <h3 id="userModalTitle" class="text-2xl font-black text-gray-900">Add User</h3>
+        <button onclick="closeUserModal()" class="text-2xl text-gray-400 hover:text-gray-600">&times;</button>
+      </div>
+
+      <form id="userForm" class="space-y-4" onsubmit="handleUserSubmit(event)">
+        <label class="block font-bold text-gray-700">Name</label>
+        <input id="userNameInput" type="text" class="input-field" placeholder="John Doe" required>
+
+        <label class="block font-bold text-gray-700">Email</label>
+        <input id="userEmailInput" type="email" class="input-field" placeholder="john@example.com" required>
+
+        <label class="block font-bold text-gray-700">Password</label>
+        <input id="userPasswordInput" type="password" class="input-field" placeholder="At least 8 characters" required>
+
+        <label class="block font-bold text-gray-700">Role</label>
+        <select id="userRoleInput" class="select-field" required>
+          <option value="student">Student</option>
+          <option value="trainer">Trainer</option>
+          <option value="admin">Admin</option>
+        </select>
+
+        <div id="userError" class="text-red-600 text-sm"></div>
+
+        <div class="flex gap-3">
+          <button type="button" onclick="closeUserModal()" class="flex-1 py-2 px-4 bg-gray-100 text-gray-900 font-bold rounded-lg hover:bg-gray-200">Cancel</button>
+          <button type="submit" class="flex-1 btn-primary">Save User</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="courseModal" class="modal">
+    <div class="modal-content">
+      <div class="flex justify-between items-center mb-4">
+        <h3 id="courseModalTitle" class="text-2xl font-black text-gray-900">Add Course</h3>
+        <button onclick="closeCourseModal()" class="text-2xl text-gray-400 hover:text-gray-600">&times;</button>
+      </div>
+
+      <form id="courseForm" class="space-y-4" onsubmit="handleCourseSubmit(event)">
+        <label class="block font-bold text-gray-700">Title</label>
+        <input id="courseTitleInput" type="text" class="input-field" placeholder="Course title" required>
+
+        <label class="block font-bold text-gray-700">Description</label>
+        <textarea id="courseDescriptionInput" class="textarea-field" rows="3" placeholder="Course description" required></textarea>
+
+        <label class="block font-bold text-gray-700">Price</label>
+        <input id="coursePriceInput" type="number" class="input-field" placeholder="599" required>
+
+        <label class="block font-bold text-gray-700">Duration</label>
+        <input id="courseDurationInput" type="text" class="input-field" placeholder="4 weeks" required>
+
+        <label class="block font-bold text-gray-700">Level</label>
+        <select id="courseLevelInput" class="select-field" required>
+          <option value="Beginner">Beginner</option>
+          <option value="Intermediate">Intermediate</option>
+          <option value="Advanced">Advanced</option>
+        </select>
+
+        <label class="block font-bold text-gray-700">Instructor</label>
+        <input id="courseInstructorInput" type="text" class="input-field" placeholder="Trainer name" required>
+
+        <div id="courseError" class="text-red-600 text-sm"></div>
+
+        <div class="flex gap-3">
+          <button type="button" onclick="closeCourseModal()" class="flex-1 py-2 px-4 bg-gray-100 text-gray-900 font-bold rounded-lg hover:bg-gray-200">Cancel</button>
+          <button type="submit" class="flex-1 btn-primary">Save Course</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000/api';
+    let currentUser = null;
+    let editingUserId = null;
+    let editingCourseId = null;
+    let usersCache = [];
+    let coursesCache = [];
+    let analyticsCache = {
+      enrollmentTrend: [],
+      trainerPerformance: [],
+      studentProgress: [],
+      topStudents: [],
+      courseRevenue: [],
+      userDistribution: [],
+      totalRevenue: 0
+    };
+    let dashboardTrendChart = null;
+    let trainerChart = null;
+    let studentProgressChart = null;
+    let courseRevenueChart = null;
+
+    function showSection(sectionName, event) {
+      document.querySelectorAll('[data-section]').forEach((section) => {
+        section.classList.add('hidden');
+      });
+
+      const targetSection = document.querySelector(`[data-section="${sectionName}"]`);
+      if (targetSection) {
+        targetSection.classList.remove('hidden');
+      }
+
+      document.querySelectorAll('[data-nav]').forEach((item) => {
+        item.classList.remove('active');
+      });
+
+      const navTarget = event?.currentTarget || document.querySelector(`[data-nav="${sectionName}"]`);
+      if (navTarget) {
+        navTarget.classList.add('active');
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/';
+    }
+
+    async function loadUserData() {
+      const user = localStorage.getItem('user');
+      if (!user) {
+        window.location.href = '/';
+        return false;
+      }
+
+      currentUser = JSON.parse(user);
+      if (currentUser.role !== 'admin') {
+        window.location.href = '/';
+        return false;
+      }
+
+      document.getElementById('userName').textContent = currentUser.name;
+      return true;
+    }
+
+    async function loadStats() {
+      try {
+        const response = await fetch(`${API_URL}/admin/stats`);
+        const stats = response.ok ? await response.json() : {};
+
+        document.getElementById('studentCount').textContent = stats.students || 0;
+        document.getElementById('trainerCount').textContent = stats.trainers || 0;
+        document.getElementById('courseCount').textContent = stats.courses || 0;
+        document.getElementById('revenueCount').textContent = `Rs.${Number(stats.totalRevenue || 0).toLocaleString()}`;
+      } catch (error) {
+        console.error('Error loading admin stats:', error);
+      }
+    }
+
+    async function loadUsers() {
+      const search = document.getElementById('userSearchInput')?.value.trim() || '';
+      const role = document.getElementById('userRoleFilter')?.value || 'all';
+      const [sortBy, sortDir] = (document.getElementById('userSortSelect')?.value || 'created_at:desc').split(':');
+
+      const params = new URLSearchParams({
+        search,
+        role,
+        sortBy,
+        sortDir
+      });
+
+      try {
+        const response = await fetch(`${API_URL}/admin/users?${params.toString()}`);
+        usersCache = response.ok ? await response.json() : [];
+        renderUsers();
+      } catch (error) {
+        console.error('Error loading users:', error);
+        document.getElementById('usersTable').innerHTML = '<tr><td colspan="5" class="text-center text-red-500 py-8">Unable to load users.</td></tr>';
+      }
+    }
+
+    function renderUsers() {
+      const usersTable = document.getElementById('usersTable');
+
+      if (!usersCache.length) {
+        usersTable.innerHTML = '<tr><td colspan="5" class="text-center text-gray-500 py-8">No users match the current filters.</td></tr>';
+        return;
+      }
+
+      usersTable.innerHTML = usersCache.map((user) => `
+        <tr>
+          <td><strong>${user.name}</strong></td>
+          <td>${user.email}</td>
+          <td>
+            <span class="inline-block px-3 py-1 rounded-full text-xs font-bold ${
+              user.role === 'student' ? 'bg-blue-100 text-blue-700' :
+              user.role === 'trainer' ? 'bg-green-100 text-green-700' :
+              'bg-red-100 text-red-700'
+            }">${user.role.toUpperCase()}</span>
+          </td>
+          <td>${new Date(user.created_at).toLocaleDateString()}</td>
+          <td>
+            <button class="btn-action btn-edit" onclick="editUser(${user.id})">Edit</button>
+            <button class="btn-action btn-delete" onclick="deleteUser(${user.id}, '${escapeSingleQuotes(user.name)}')">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadCourses() {
+      try {
+        const response = await fetch(`${API_URL}/admin/courses`);
+        coursesCache = response.ok ? await response.json() : [];
+        renderCourses();
+      } catch (error) {
+        console.error('Error loading courses:', error);
+        document.getElementById('coursesTable').innerHTML = '<tr><td colspan="6" class="text-center text-red-500 py-8">Unable to load courses.</td></tr>';
+      }
+    }
+
+    function renderCourses() {
+      const coursesTable = document.getElementById('coursesTable');
+
+      if (!coursesCache.length) {
+        coursesTable.innerHTML = '<tr><td colspan="6" class="text-center text-gray-500 py-8">No courses available yet.</td></tr>';
+        return;
+      }
+
+      coursesTable.innerHTML = coursesCache.map((course) => `
+        <tr>
+          <td><strong>${course.title}</strong></td>
+          <td>${course.instructor}</td>
+          <td class="font-bold text-purple-500">Rs.${Number(course.price || 0).toLocaleString()}</td>
+          <td><span class="inline-block px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-bold">${course.level}</span></td>
+          <td>${course.students || 0}</td>
+          <td>
+            <button class="btn-action btn-edit" onclick="editCourse(${course.id})">Edit</button>
+            <button class="btn-action btn-delete" onclick="deleteCourse(${course.id}, '${escapeSingleQuotes(course.title)}')">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadAnalytics() {
+      try {
+        const response = await fetch(`${API_URL}/admin/analytics`);
+        analyticsCache = response.ok ? await response.json() : analyticsCache;
+        renderDashboardInsights();
+        renderAnalytics();
+      } catch (error) {
+        console.error('Error loading analytics:', error);
+      }
+    }
+
+    function renderDashboardInsights() {
+      const topTrainer = analyticsCache.trainerPerformance?.[0];
+      const topStudent = analyticsCache.topStudents?.[0];
+      const progressSummary = (analyticsCache.studentProgress || [])
+        .map((item) => `${item.label}: ${item.count}`)
+        .join(' | ');
+
+      document.getElementById('topTrainerCard').textContent = topTrainer
+        ? `${topTrainer.trainer} (${topTrainer.students} students)`
+        : 'No data yet';
+      document.getElementById('topStudentCard').textContent = topStudent
+        ? `${topStudent.name} (${Math.round(Number(topStudent.averageProgress || 0))}% avg progress)`
+        : 'No data yet';
+      document.getElementById('progressSummaryCard').textContent = progressSummary || 'No data yet';
+
+      const trendLabels = (analyticsCache.enrollmentTrend || []).map((item) => item.date);
+      const trendValues = (analyticsCache.enrollmentTrend || []).map((item) => Number(item.count || 0));
+
+      if (dashboardTrendChart) dashboardTrendChart.destroy();
+      dashboardTrendChart = new Chart(document.getElementById('dashboardTrendChart'), {
+        type: 'line',
+        data: {
+          labels: trendLabels,
+          datasets: [{
+            label: 'Enrollments',
+            data: trendValues,
+            borderColor: '#4F46E5',
+            backgroundColor: 'rgba(79, 70, 229, 0.12)',
+            fill: true,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+
+    function renderAnalytics() {
+      const trainerPerformance = analyticsCache.trainerPerformance || [];
+      const studentProgress = analyticsCache.studentProgress || [];
+      const courseRevenue = analyticsCache.courseRevenue || [];
+      const topStudents = analyticsCache.topStudents || [];
+
+      if (trainerChart) trainerChart.destroy();
+      if (studentProgressChart) studentProgressChart.destroy();
+      if (courseRevenueChart) courseRevenueChart.destroy();
+
+      trainerChart = new Chart(document.getElementById('trainerChart'), {
+        type: 'bar',
+        data: {
+          labels: trainerPerformance.map((item) => item.trainer),
+          datasets: [
+            {
+              label: 'Students',
+              data: trainerPerformance.map((item) => Number(item.students || 0)),
+              backgroundColor: '#4F46E5'
+            },
+            {
+              label: 'Courses',
+              data: trainerPerformance.map((item) => Number(item.courses || 0)),
+              backgroundColor: '#06B6D4'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+
+      studentProgressChart = new Chart(document.getElementById('studentProgressChart'), {
+        type: 'doughnut',
+        data: {
+          labels: studentProgress.map((item) => item.label),
+          datasets: [{
+            data: studentProgress.map((item) => Number(item.count || 0)),
+            backgroundColor: ['#94A3B8', '#06B6D4', '#10B981']
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+
+      courseRevenueChart = new Chart(document.getElementById('courseRevenueChart'), {
+        type: 'bar',
+        data: {
+          labels: courseRevenue.map((item) => item.title),
+          datasets: [{
+            label: 'Revenue',
+            data: courseRevenue.map((item) => Number(item.revenue || 0)),
+            backgroundColor: '#10B981'
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+
+      const topStudentsTable = document.getElementById('topStudentsTable');
+      if (!topStudents.length) {
+        topStudentsTable.innerHTML = '<tr><td colspan="3" class="text-center text-gray-500 py-8">No student progress data yet.</td></tr>';
+      } else {
+        topStudentsTable.innerHTML = topStudents.map((student) => `
+          <tr>
+            <td><strong>${student.name}</strong></td>
+            <td>${student.enrolledCourses}</td>
+            <td>${Math.round(Number(student.averageProgress || 0))}%</td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    async function loadSettings() {
+      try {
+        const response = await fetch(`${API_URL}/admin/settings`);
+        const settings = response.ok ? await response.json() : {};
+
+        document.getElementById('settingPlatformName').value = settings.platformName || 'Adz4Needz';
+        document.getElementById('settingSupportEmail').value = settings.supportEmail || '';
+        document.getElementById('settingAnnouncement').value = settings.announcement || '';
+        document.getElementById('settingAllowRegistrations').checked = settings.allowRegistrations !== 'false';
+        document.getElementById('settingMaintenanceMode').checked = settings.maintenanceMode === 'true';
+      } catch (error) {
+        console.error('Error loading settings:', error);
+      }
+    }
+
+    async function handleSettingsSubmit(event) {
+      event.preventDefault();
+
+      const payload = {
+        platformName: document.getElementById('settingPlatformName').value.trim(),
+        supportEmail: document.getElementById('settingSupportEmail').value.trim(),
+        announcement: document.getElementById('settingAnnouncement').value.trim(),
+        allowRegistrations: String(document.getElementById('settingAllowRegistrations').checked),
+        maintenanceMode: String(document.getElementById('settingMaintenanceMode').checked)
+      };
+
+      try {
+        const response = await fetch(`${API_URL}/admin/settings`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+        const message = document.getElementById('settingsMessage');
+
+        if (!response.ok) {
+          message.className = 'text-sm text-red-600';
+          message.textContent = data.error || 'Unable to save settings.';
+          return;
+        }
+
+        message.className = 'text-sm text-green-600';
+        message.textContent = data.message || 'Settings saved successfully.';
+      } catch (error) {
+        const message = document.getElementById('settingsMessage');
+        message.className = 'text-sm text-red-600';
+        message.textContent = `Unable to save settings: ${error.message}`;
+      }
+    }
+
+    function openUserModal() {
+      editingUserId = null;
+      document.getElementById('userModalTitle').textContent = 'Add User';
+      document.getElementById('userForm').reset();
+      document.getElementById('userPasswordInput').required = true;
+      document.getElementById('userPasswordInput').placeholder = 'At least 8 characters';
+      document.getElementById('userError').textContent = '';
+      document.getElementById('userModal').classList.add('active');
+    }
+
+    function closeUserModal() {
+      editingUserId = null;
+      document.getElementById('userForm').reset();
+      document.getElementById('userModal').classList.remove('active');
+    }
+
+    function editUser(id) {
+      const user = usersCache.find((item) => item.id === id);
+      if (!user) return;
+
+      editingUserId = id;
+      document.getElementById('userModalTitle').textContent = 'Edit User';
+      document.getElementById('userNameInput').value = user.name;
+      document.getElementById('userEmailInput').value = user.email;
+      document.getElementById('userRoleInput').value = user.role;
+      document.getElementById('userPasswordInput').value = '';
+      document.getElementById('userPasswordInput').required = false;
+      document.getElementById('userPasswordInput').placeholder = 'Password changes are not supported here';
+      document.getElementById('userError').textContent = '';
+      document.getElementById('userModal').classList.add('active');
+    }
+
+    async function handleUserSubmit(event) {
+      event.preventDefault();
+
+      const name = document.getElementById('userNameInput').value.trim();
+      const email = document.getElementById('userEmailInput').value.trim();
+      const password = document.getElementById('userPasswordInput').value;
+      const role = document.getElementById('userRoleInput').value;
+      const errorBox = document.getElementById('userError');
+      errorBox.textContent = '';
+
+      if (!editingUserId && password.length < 8) {
+        errorBox.textContent = 'Password must be at least 8 characters for a new user.';
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          editingUserId ? `${API_URL}/admin/users/${editingUserId}` : `${API_URL}/admin/users`,
+          {
+            method: editingUserId ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(editingUserId ? { name, email, role } : { name, email, password, role })
+          }
+        );
+
+        const data = await response.json();
+        if (!response.ok) {
+          errorBox.textContent = data.error || 'Unable to save user.';
+          return;
+        }
+
+        closeUserModal();
+        await Promise.all([loadUsers(), loadStats()]);
+      } catch (error) {
+        errorBox.textContent = `Unable to save user: ${error.message}`;
+      }
+    }
+
+    async function deleteUser(id, name) {
+      if (!confirm(`Delete user "${name}"?`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/admin/users/${id}`, { method: 'DELETE' });
+        const data = await response.json();
+        if (!response.ok) {
+          alert(data.error || 'Unable to delete user.');
+          return;
+        }
+
+        await Promise.all([loadUsers(), loadStats(), loadAnalytics()]);
+      } catch (error) {
+        alert(`Unable to delete user: ${error.message}`);
+      }
+    }
+
+    function openCourseModal() {
+      editingCourseId = null;
+      document.getElementById('courseModalTitle').textContent = 'Add Course';
+      document.getElementById('courseForm').reset();
+      document.getElementById('courseError').textContent = '';
+      document.getElementById('courseModal').classList.add('active');
+    }
+
+    function closeCourseModal() {
+      editingCourseId = null;
+      document.getElementById('courseForm').reset();
+      document.getElementById('courseModal').classList.remove('active');
+    }
+
+    function editCourse(id) {
+      const course = coursesCache.find((item) => item.id === id);
+      if (!course) return;
+
+      editingCourseId = id;
+      document.getElementById('courseModalTitle').textContent = 'Edit Course';
+      document.getElementById('courseTitleInput').value = course.title;
+      document.getElementById('courseDescriptionInput').value = course.description;
+      document.getElementById('coursePriceInput').value = course.price;
+      document.getElementById('courseDurationInput').value = course.duration;
+      document.getElementById('courseLevelInput').value = course.level;
+      document.getElementById('courseInstructorInput').value = course.instructor;
+      document.getElementById('courseError').textContent = '';
+      document.getElementById('courseModal').classList.add('active');
+    }
+
+    async function handleCourseSubmit(event) {
+      event.preventDefault();
+
+      const payload = {
+        title: document.getElementById('courseTitleInput').value.trim(),
+        description: document.getElementById('courseDescriptionInput').value.trim(),
+        price: Number(document.getElementById('coursePriceInput').value),
+        duration: document.getElementById('courseDurationInput').value.trim(),
+        level: document.getElementById('courseLevelInput').value,
+        instructor: document.getElementById('courseInstructorInput').value.trim()
+      };
+
+      const errorBox = document.getElementById('courseError');
+      errorBox.textContent = '';
+
+      try {
+        const response = await fetch(
+          editingCourseId ? `${API_URL}/admin/courses/${editingCourseId}` : `${API_URL}/courses`,
+          {
+            method: editingCourseId ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          }
+        );
+
+        const data = await response.json();
+        if (!response.ok) {
+          errorBox.textContent = data.error || 'Unable to save course.';
+          return;
+        }
+
+        closeCourseModal();
+        await Promise.all([loadCourses(), loadStats(), loadAnalytics()]);
+      } catch (error) {
+        errorBox.textContent = `Unable to save course: ${error.message}`;
+      }
+    }
+
+    async function deleteCourse(id, title) {
+      if (!confirm(`Delete course "${title}"?`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/admin/courses/${id}`, { method: 'DELETE' });
+        const data = await response.json();
+        if (!response.ok) {
+          alert(data.error || 'Unable to delete course.');
+          return;
+        }
+
+        await Promise.all([loadCourses(), loadStats(), loadAnalytics()]);
+      } catch (error) {
+        alert(`Unable to delete course: ${error.message}`);
+      }
+    }
+
+    function setupUserControls() {
+      const searchInput = document.getElementById('userSearchInput');
+      const roleFilter = document.getElementById('userRoleFilter');
+      const sortSelect = document.getElementById('userSortSelect');
+      let searchTimer = null;
+
+      searchInput.addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(loadUsers, 250);
+      });
+
+      roleFilter.addEventListener('change', loadUsers);
+      sortSelect.addEventListener('change', loadUsers);
+    }
+
+    function escapeSingleQuotes(value) {
+      return String(value).replace(/'/g, "\\'");
+    }
+
+    window.addEventListener('load', async () => {
+      if (!localStorage.getItem('token')) {
+        window.location.href = '/';
+        return;
+      }
+
+      const isReady = await loadUserData();
+      if (!isReady) {
+        return;
+      }
+
+      setupUserControls();
+
+      await Promise.all([
+        loadStats(),
+        loadUsers(),
+        loadCourses(),
+        loadAnalytics(),
+        loadSettings()
+      ]);
+    });
+  </script>
+</body>
+</html>
