@@ -115,7 +115,9 @@
         <div class="nav-item active" data-nav="dashboard" onclick="showSection('dashboard', event)">Dashboard</div>
         <div class="nav-item" data-nav="courses" onclick="showSection('courses', event)">My Courses</div>
         <div class="nav-item" data-nav="students" onclick="showSection('students', event)">Enrolled Students</div>
-        <div class="nav-item" data-nav="schedule" onclick="showSection('schedule', event)">My Schedule</div>
+        <div class="nav-item" data-nav="manage-assignments" onclick="showSection('manage-assignments', event)">Manage Assignments</div>
+        <div class="nav-item" data-nav="schedule-classes" onclick="showSection('schedule-classes', event)">Schedule Classes</div>
+        <div class="nav-item" data-nav="schedule" onclick="showSection('schedule', event)">Weekly Schedule</div>
         <div class="nav-item" data-nav="analytics" onclick="showSection('analytics', event)">Analytics</div>
         <div class="nav-item" data-nav="tasks" onclick="showSection('tasks', event)">To-Do List</div>
       </nav>
@@ -203,6 +205,68 @@
           </div>
           <div id="enrolledStudentsList" class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="text-center py-8 text-gray-500 col-span-full">Select a course to view enrolled students.</div>
+          </div>
+        </section>
+
+        <section data-section="manage-assignments" class="section hidden space-y-6">
+          <h2 class="text-3xl font-black text-gray-900 mb-2">Manage Assignments</h2>
+          <div class="panel-card">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">Create New Assignment</h3>
+            <form id="assignmentForm" class="space-y-4" onsubmit="handleAssignmentSubmit(event)">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-1">Target Course</label>
+                  <select id="asgCourseSelect" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg" required></select>
+                </div>
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-1">Due Date</label>
+                  <input id="asgDueDate" type="date" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg" required>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Assignment Title</label>
+                <input id="asgTitle" type="text" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg" placeholder="Final Project Proposal" required>
+              </div>
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Instructions</label>
+                <textarea id="asgDesc" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg h-32" placeholder="Detail the assignment requirements..."></textarea>
+              </div>
+              <button type="submit" class="btn-primary w-full">Create Assignment</button>
+            </form>
+          </div>
+        </section>
+
+        <section data-section="schedule-classes" class="section hidden space-y-6">
+          <h2 class="text-3xl font-black text-gray-900 mb-2">Schedule Classes</h2>
+          <div class="panel-card">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">Add Class Session</h3>
+            <form id="classForm" class="space-y-4" onsubmit="handleClassSubmit(event)">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-1">Target Course</label>
+                  <select id="clCourseSelect" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg" required></select>
+                </div>
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-1">Scheduled At</label>
+                  <input id="clDate" type="datetime-local" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg" required>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Session Title</label>
+                <input id="clTitle" type="text" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg" placeholder="Live Q&A Session" required>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-1">Video URL (Recorded)</label>
+                  <input id="clVideoUrl" type="url" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg" placeholder="https://youtube.com/...">
+                </div>
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-1">Live Link (Zoom/Meet)</label>
+                  <input id="clLiveLink" type="url" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg" placeholder="https://zoom.us/j/...">
+                </div>
+              </div>
+              <button type="submit" class="btn-primary w-full">Schedule Session</button>
+            </form>
           </div>
         </section>
 
@@ -421,9 +485,55 @@
     }
 
     function populateCourseSelect() {
-      const courseSelect = document.getElementById('courseSelect');
-      courseSelect.innerHTML = '<option value="">Choose a course...</option>' +
-        userCourses.map((course) => `<option value="${course.id}">${course.title}</option>`).join('');
+      const selectors = ['courseSelect', 'asgCourseSelect', 'clCourseSelect'];
+      selectors.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.innerHTML = '<option value="">Choose a course...</option>' +
+            userCourses.map((course) => `<option value="${course.id}">${course.title}</option>`).join('');
+        }
+      });
+    }
+
+    async function handleAssignmentSubmit(event) {
+      event.preventDefault();
+      const courseId = document.getElementById('asgCourseSelect').value;
+      const title = document.getElementById('asgTitle').value;
+      const description = document.getElementById('asgDesc').value;
+      const dueDate = document.getElementById('asgDueDate').value;
+
+      try {
+        const res = await fetch(`${API_URL}/assignments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ course_id: courseId, title, description, due_date: dueDate })
+        });
+        if (res.ok) {
+          alert('Assignment created!');
+          event.target.reset();
+        }
+      } catch (err) { console.error(err); }
+    }
+
+    async function handleClassSubmit(event) {
+      event.preventDefault();
+      const courseId = document.getElementById('clCourseSelect').value;
+      const title = document.getElementById('clTitle').value;
+      const videoUrl = document.getElementById('clVideoUrl').value;
+      const liveLink = document.getElementById('clLiveLink').value;
+      const scheduledAt = document.getElementById('clDate').value;
+
+      try {
+        const res = await fetch(`${API_URL}/classes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ course_id: courseId, title, video_url: videoUrl, live_link: liveLink, scheduled_at: scheduledAt })
+        });
+        if (res.ok) {
+          alert('Class scheduled!');
+          event.target.reset();
+        }
+      } catch (err) { console.error(err); }
     }
 
     function viewCourseStudents(courseId) {

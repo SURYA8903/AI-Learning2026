@@ -200,6 +200,61 @@ const initializeDatabase = () => {
       )
     `);
 
+    // Assignments Table
+    db.run(`
+      CREATE TABLE IF NOT EXISTS assignments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        course_id INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT,
+        due_date DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(course_id) REFERENCES courses(id)
+      )
+    `);
+
+    // Submissions Table
+    db.run(`
+      CREATE TABLE IF NOT EXISTS submissions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        assignment_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        content TEXT,
+        grade TEXT,
+        status TEXT DEFAULT 'submitted',
+        submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(assignment_id) REFERENCES assignments(id),
+        FOREIGN KEY(user_id) REFERENCES users(id)
+      )
+    `);
+
+    // Classes Table
+    db.run(`
+      CREATE TABLE IF NOT EXISTS classes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        course_id INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        video_url TEXT,
+        live_link TEXT,
+        scheduled_at DATETIME,
+        duration TEXT,
+        FOREIGN KEY(course_id) REFERENCES courses(id)
+      )
+    `);
+
+    // Certificates Table
+    db.run(`
+      CREATE TABLE IF NOT EXISTS certificates (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        course_id INTEGER NOT NULL,
+        issued_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        certificate_url TEXT,
+        FOREIGN KEY(user_id) REFERENCES users(id),
+        FOREIGN KEY(course_id) REFERENCES courses(id)
+      )
+    `);
+
     db.run(`
       UPDATE enrollments
       SET course_id = (
@@ -759,9 +814,123 @@ app.put('/api/enrollments/:enrollmentId', (req, res) => {
     [progress, status, enrollmentId],
     function(err) {
       if (err) return res.status(500).json({ error: '❌ Failed to update progress!' });
+
+      // Auto-generate certificate if progress is 100%
+      if (Number(progress) >= 100) {
+        db.get('SELECT user_id, course_id FROM enrollments WHERE id = ?', [enrollmentId], (err, enrollment) => {
+          if (enrollment) {
+            db.run(
+              'INSERT INTO certificates (user_id, course_id) SELECT ?, ? WHERE NOT EXISTS (SELECT 1 FROM certificates WHERE user_id = ? AND course_id = ?)',
+              [enrollment.user_id, enrollment.course_id, enrollment.user_id, enrollment.course_id]
+            );
+          }
+        });
+      }
+
       res.json({ message: '✅ Progress updated!' });
     }
   );
+});
+
+// ============= ASSIGNMENTS APIs =============
+
+app.post('/api/assignments', (req, res) => {
+  const { course_id, title, description, due_date } = req.body;
+  if (!course_id || !title) return res.status(400).json({ error: 'Course ID and title are required' });
+
+  db.run(
+    'INSERT INTO assignments (course_id, title, description, due_date) VALUES (?, ?, ?, ?)',
+    [course_id, title, description, due_date],
+    function(err) {
+      if (err) return res.status(500).json({ error: 'Failed to create assignment' });
+      res.status(201).json({ message: 'Assignment created', id: this.lastID });
+    }
+  );
+});
+
+app.get('/api/assignments/user/:userId', (req, res) => {
+  const { userId } = req.params;
+  const sql = `
+    SELECT a.*, c.title as course_title, s.status as submission_status, s.grade
+    FROM assignments a
+    JOIN enrollments e ON e.course_id = a.course_id
+    JOIN courses c ON c.id = a.course_id
+    LEFT JOIN submissions s ON s.assignment_id = a.id AND s.user_id = e.user_id
+    WHERE e.user_id = ?
+  `;
+  db.all(sql, [userId], (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Failed to fetch assignments' });
+    
+    const result = {
+      pending: rows.filter(r => !r.submission_status),
+      submitted: rows.filter(r => r.submission_status)
+    };
+    res.json(result);
+  });
+});
+
+app.post('/api/submissions', (req, res) => {
+  const { assignment_id, user_id, content } = req.body;
+  if (!assignment_id || !user_id) return res.status(400).json({ error: 'Assignment ID and User ID are required' });
+
+  db.run(
+    'INSERT INTO submissions (assignment_id, user_id, content) VALUES (?, ?, ?)',
+    [assignment_id, user_id, content],
+    function(err) {
+      if (err) return res.status(500).json({ error: 'Failed to submit assignment' });
+      res.status(201).json({ message: 'Assignment submitted', id: this.lastID });
+    }
+  );
+});
+
+app.get('/api/submissions/:userId', (req, res) => {
+  const { userId } = req.params;
+  db.all('SELECT s.*, a.title as assignment_title FROM submissions s JOIN assignments a ON a.id = s.assignment_id WHERE s.user_id = ?', [userId], (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Failed to fetch submissions' });
+    res.json(rows);
+  });
+});
+
+// ============= CLASSES APIs =============
+
+app.post('/api/classes', (req, res) => {
+  const { course_id, title, video_url, live_link, scheduled_at, duration } = req.body;
+  if (!course_id || !title) return res.status(400).json({ error: 'Course ID and title are required' });
+
+  db.run(
+    'INSERT INTO classes (course_id, title, video_url, live_link, scheduled_at, duration) VALUES (?, ?, ?, ?, ?, ?)',
+    [course_id, title, video_url, live_link, scheduled_at, duration],
+    function(err) {
+      if (err) return res.status(500).json({ error: 'Failed to schedule class' });
+      res.status(201).json({ message: 'Class scheduled', id: this.lastID });
+    }
+  );
+});
+
+app.get('/api/classes/:userId', (req, res) => {
+  const { userId } = req.params;
+  const sql = `
+    SELECT cl.*, co.title as course_title
+    FROM classes cl
+    JOIN enrollments e ON e.course_id = cl.course_id
+    JOIN courses co ON co.id = cl.course_id
+    WHERE e.user_id = ?
+    ORDER BY cl.scheduled_at ASC
+  `;
+  db.all(sql, [userId], (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Failed to fetch classes' });
+    res.json(rows);
+  });
+});
+
+// ============= CERTIFICATE APIs =============
+
+app.get('/api/certificates/:userId', (req, res) => {
+  const { userId } = req.params;
+  db.all('SELECT ce.*, co.title as course_title FROM certificates ce JOIN courses co ON co.id = ce.course_id WHERE ce.user_id = ?', [userId], (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Failed to fetch certificates' });
+    res.json(rows);
+  });
 });
 
 // ============= ADMIN APIs =============
