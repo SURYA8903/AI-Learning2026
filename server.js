@@ -496,8 +496,6 @@ app.post('/api/enrollments', (req, res) => {
           res.status(201).json({ message: 'Enrolled successfully!' });
         }
       );
-      if (err) return res.status(500).json({ error: '❌ Enrollment failed!' });
-      res.status(201).json({ message: '✅ Enrolled successfully!' });
     }
   );
 });
