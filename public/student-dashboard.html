@@ -97,6 +97,9 @@
   </style>
   <link rel="stylesheet" href="/premium-ui.css">
   <script src="/premium-ui.js" defer></script>
+  <script src="/assignments.js" defer></script>
+  <script src="/classes.js" defer></script>
+  <script src="/dashboard.js" defer></script>
 </head>
 <body class="bg-gray-50">
   <div class="flex h-screen">
@@ -109,7 +112,10 @@
       <nav class="flex-1 space-y-2">
         <div class="nav-item active" data-nav="dashboard" onclick="showSection('dashboard', event)">Dashboard</div>
         <div class="nav-item" data-nav="courses" onclick="showSection('courses', event)">My Courses</div>
+        <div class="nav-item" data-nav="assignments" onclick="showSection('assignments', event)">Assignments</div>
+        <div class="nav-item" data-nav="classes" onclick="showSection('classes', event)">Live Classes</div>
         <div class="nav-item" data-nav="todos" onclick="showSection('todos', event)">To-Do List</div>
+        <div class="nav-item" data-nav="certificates" onclick="showSection('certificates', event)">Certificates</div>
         <div class="nav-item" data-nav="achievements" onclick="showSection('achievements', event)">Achievements</div>
         <div class="nav-item" data-nav="settings" onclick="showSection('settings', event)">Settings</div>
       </nav>
@@ -135,21 +141,26 @@
             <p class="text-gray-600">Track real course progress, plan your tasks, and keep learning momentum.</p>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div class="stat-card">
-              <div class="text-3xl mb-2">1</div>
-              <p class="text-gray-600 text-sm">Enrolled Courses</p>
-              <p class="text-2xl font-black text-purple-500" id="enrolledCount"></p>
+              <div class="text-2xl mb-1">📚</div>
+              <p class="text-gray-600 text-xs">Enrolled</p>
+              <p class="text-xl font-black text-purple-500" id="enrolledCount"></p>
             </div>
             <div class="stat-card">
-              <div class="text-3xl mb-2">2</div>
-              <p class="text-gray-600 text-sm">Average Progress</p>
-              <p class="text-2xl font-black aqua-gradient-text" id="averageProgress">0%</p>
+              <div class="text-2xl mb-1">📊</div>
+              <p class="text-gray-600 text-xs">Avg. Progress</p>
+              <p class="text-xl font-black aqua-gradient-text" id="dashAverageProgress">0%</p>
             </div>
             <div class="stat-card">
-              <div class="text-3xl mb-2">3</div>
-              <p class="text-gray-600 text-sm">Completed Courses</p>
-              <p class="text-2xl font-black text-orange-500" id="completedCount">0</p>
+              <div class="text-2xl mb-1">📝</div>
+              <p class="text-gray-600 text-xs">Assignments</p>
+              <p class="text-xl font-black text-orange-500" id="dashPendingAssignments">0</p>
+            </div>
+            <div class="stat-card">
+              <div class="text-2xl mb-1">🎥</div>
+              <p class="text-gray-600 text-xs">Live Classes</p>
+              <p class="text-xl font-black text-blue-500" id="dashUpcomingClasses">0</p>
             </div>
           </div>
 
@@ -168,6 +179,34 @@
           <h2 class="text-3xl font-black text-gray-900 mb-6">My Enrolled Courses</h2>
           <div id="enrolledCoursesList" class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="text-center py-8 text-gray-500 col-span-full">Loading your courses...</div>
+          </div>
+        </section>
+
+        <section data-section="assignments" class="section hidden space-y-8">
+          <h2 class="text-3xl font-black text-gray-900 mb-2">Assignments</h2>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="space-y-4">
+              <h3 class="text-xl font-bold text-gray-800">Pending</h3>
+              <div id="pendingAssignmentsList" class="space-y-4"></div>
+            </div>
+            <div class="space-y-4">
+              <h3 class="text-xl font-bold text-gray-800">Submitted</h3>
+              <div id="submittedAssignmentsList" class="space-y-4"></div>
+            </div>
+          </div>
+        </section>
+
+        <section data-section="classes" class="section hidden space-y-8">
+          <h2 class="text-3xl font-black text-gray-900 mb-2">Live & Recorded Classes</h2>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="space-y-4">
+              <h3 class="text-xl font-bold text-gray-800">Upcoming Live</h3>
+              <div id="liveClassesList" class="space-y-4"></div>
+            </div>
+            <div class="space-y-4">
+              <h3 class="text-xl font-bold text-gray-800">Recorded Sessions</h3>
+              <div id="recordedClassesList" class="space-y-4"></div>
+            </div>
           </div>
         </section>
 
@@ -226,6 +265,13 @@
           <h2 class="text-3xl font-black text-gray-900 mb-6">Achievements</h2>
           <div id="achievementsGrid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
             <div class="text-center py-8 text-gray-500 col-span-full">Loading achievements...</div>
+          </div>
+        </section>
+
+        <section data-section="certificates" class="section hidden">
+          <h2 class="text-3xl font-black text-gray-900 mb-6">My Certificates</h2>
+          <div id="certificatesList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div class="text-center py-8 text-gray-500 col-span-full">Complete courses to earn certificates.</div>
           </div>
         </section>
 
@@ -288,9 +334,28 @@
     </div>
   </div>
 
+  <div id="submitModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6">
+      <div class="flex justify-between items-start mb-4">
+        <h3 id="submitModalTitle" class="text-xl font-bold text-gray-900">Submit Assignment</h3>
+        <button onclick="closeSubmitModal()" class="text-2xl text-gray-400 hover:text-gray-600">&times;</button>
+      </div>
+      <div class="space-y-4">
+        <p id="submitAsgName" class="text-gray-600 font-semibold"></p>
+        <textarea id="submitContent" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg h-32" placeholder="Enter your response or link here..."></textarea>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button onclick="closeSubmitModal()" class="flex-1 py-2 px-4 bg-gray-100 text-gray-900 font-bold rounded-lg hover:bg-gray-200">Cancel</button>
+        <button onclick="handleFinalSubmission()" class="flex-1 btn-primary">Submit Now</button>
+      </div>
+    </div>
+  </div>
+
+
   <script>
     const API_URL = 'http://localhost:3000/api';
     let currentCourse = null;
+    let currentAssignment = null;
     let currentUser = null;
     let allCourses = [];
     let enrolledCourses = [];
@@ -305,6 +370,12 @@
       const targetSection = document.querySelector(`[data-section="${sectionName}"]`);
       if (targetSection) {
         targetSection.classList.remove('hidden');
+        
+        // Load section-specific data
+        if (sectionName === 'assignments') loadAssignments(currentUser.id);
+        if (sectionName === 'classes') loadClasses(currentUser.id);
+        if (sectionName === 'certificates') loadCertificates(currentUser.id);
+        if (sectionName === 'dashboard') loadDashboardStats(currentUser.id);
       }
 
       document.querySelectorAll('[data-nav]').forEach((item) => {
@@ -336,10 +407,15 @@
         return false;
       }
 
-      document.getElementById('userName').textContent = currentUser.name;
-      document.getElementById('welcomeName').textContent = currentUser.name.split(' ')[0];
-      document.getElementById('settingsName').textContent = currentUser.name;
-      document.getElementById('settingsEmail').textContent = currentUser.email;
+      const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+      };
+
+      setVal('userName', currentUser.name);
+      setVal('welcomeName', currentUser.name.split(' ')[0]);
+      setVal('settingsName', currentUser.name);
+      setVal('settingsEmail', currentUser.email);
       return true;
     }
 
@@ -375,12 +451,24 @@
         ? Math.round(enrolledCourses.reduce((sum, course) => sum + Number(course.progress || 0), 0) / enrolledCount)
         : 0;
 
-      document.getElementById('enrolledCount').textContent = enrolledCount;
-      document.getElementById('averageProgress').textContent = `${averageProgressValue}%`;
-      document.getElementById('completedCount').textContent = completedCount;
-      document.getElementById('settingsEnrollmentCount').textContent = enrolledCount;
-      document.getElementById('settingsAverageProgress').textContent = `${averageProgressValue}%`;
-      document.getElementById('settingsCompletedCount').textContent = completedCount;
+      const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.textContent = val;
+        } else {
+          console.warn(`Element with ID "${id}" not found.`);
+        }
+      };
+
+      // Dashboard Stats
+      setVal('enrolledCount', enrolledCount);
+      setVal('dashAverageProgress', `${averageProgressValue}%`);
+      setVal('completedCount', completedCount); // Add this if needed in HTML
+
+      // Settings Stats
+      setVal('settingsEnrollmentCount', enrolledCount);
+      setVal('settingsAverageProgress', `${averageProgressValue}%`);
+      setVal('settingsCompletedCount', completedCount);
     }
 
     function displayDashboardCourses(courses) {
@@ -585,9 +673,14 @@
       const highPriority = todos.filter((todo) => todo.priority === 'high' && todo.status !== 'completed').length;
       const completed = todos.filter((todo) => todo.status === 'completed').length;
 
-      document.getElementById('pendingTodoCount').textContent = `${pending} task${pending === 1 ? '' : 's'}`;
-      document.getElementById('highTodoCount').textContent = `${highPriority} task${highPriority === 1 ? '' : 's'}`;
-      document.getElementById('completedTodoCount').textContent = `${completed} task${completed === 1 ? '' : 's'}`;
+      const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+      };
+
+      setVal('pendingTodoCount', `${pending} task${pending === 1 ? '' : 's'}`);
+      setVal('highTodoCount', `${highPriority} task${highPriority === 1 ? '' : 's'}`);
+      setVal('completedTodoCount', `${completed} task${completed === 1 ? '' : 's'}`);
     }
 
     async function handleTodoSubmit(event) {
@@ -662,7 +755,7 @@
       }
     }
 
-    window.addEventListener('load', async () => {
+    document.addEventListener('DOMContentLoaded', async () => {
       if (!localStorage.getItem('token')) {
         window.location.href = '/';
         return;
@@ -673,8 +766,29 @@
         return;
       }
 
-      await Promise.all([loadCourses(), loadTodos()]);
+      await Promise.all([
+        loadCourses(), 
+        loadTodos(),
+        loadDashboardStats(currentUser.id)
+      ]);
     });
+    function showSubmitModal(asgId, asgTitle) {
+      currentAssignment = asgId;
+      document.getElementById('submitAsgName').textContent = asgTitle;
+      document.getElementById('submitModal').classList.remove('hidden');
+    }
+
+    function closeSubmitModal() {
+      document.getElementById('submitModal').classList.add('hidden');
+      document.getElementById('submitContent').value = '';
+    }
+
+    function handleFinalSubmission() {
+      const content = document.getElementById('submitContent').value.trim();
+      if (!content) return alert('Please enter some content');
+      submitAssignment(currentAssignment, currentUser.id, content);
+    }
   </script>
 </body>
 </html>
+
