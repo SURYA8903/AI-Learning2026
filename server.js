@@ -7,7 +7,7 @@ const bodyParser = require('body-parser');
 const path = require('path');
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 const JWT_SECRET = 'your-secret-key-change-in-production';
 
 // Password Validation Function

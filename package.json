@@ -4,13 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx server.ts",
+    "dev": "node server.cjs",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "tsx server.ts",
+    "start": "node server.cjs",
     "clean": "powershell -Command \"if (Test-Path dist) { Remove-Item -Recurse -Force dist }\"",
     "lint": "tsc --noEmit",
-    "fix:run": ".\\node_modules\\.bin\\tsx server.ts"
+    "fix:run": "node server.cjs"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
