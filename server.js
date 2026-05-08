@@ -83,6 +83,114 @@ const COURSE_SELECT_SQL = `
   LEFT JOIN enrollments e ON e.course_id = c.id
 `;
 
+const PRAPTI_KEYWORD_GROUPS = [
+  {
+    category: 'Frontend Development',
+    icon: '🧩',
+    keywords: ['html', 'css', 'javascript', 'js', 'frontend', 'web', 'ui', 'ux', 'design', 'react'],
+    topics: ['HTML', 'CSS', 'JavaScript', 'Responsive UI']
+  },
+  {
+    category: 'React Development',
+    icon: '⚛️',
+    keywords: ['react', 'jsx', 'frontend', 'component', 'spa', 'hooks'],
+    topics: ['React', 'Components', 'Hooks', 'State Management']
+  },
+  {
+    category: 'Python And Data',
+    icon: '🐍',
+    keywords: ['python', 'data', 'analysis', 'analytics', 'automation', 'science'],
+    topics: ['Python', 'Data Analysis', 'Automation', 'Problem Solving']
+  },
+  {
+    category: 'Programming Foundations',
+    icon: '📘',
+    keywords: ['beginner', 'basics', 'fundamentals', 'essentials', 'starter', 'intro'],
+    topics: ['Logic', 'Syntax', 'Projects', 'Practice']
+  }
+];
+
+function normalizeKeywordList(value) {
+  return String(value || '')
+    .toLowerCase()
+    .split(/[^a-z0-9+#.]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function inferCourseMetadata(course) {
+  const searchableText = `${course.title || ''} ${course.description || ''} ${course.level || ''}`.toLowerCase();
+  const matchedGroup = PRAPTI_KEYWORD_GROUPS
+    .map((group) => ({
+      group,
+      matches: group.keywords.filter((keyword) => searchableText.includes(keyword)).length
+    }))
+    .sort((left, right) => right.matches - left.matches)[0];
+
+  const group = matchedGroup && matchedGroup.matches > 0
+    ? matchedGroup.group
+    : PRAPTI_KEYWORD_GROUPS[3];
+
+  return {
+    category: group.category,
+    icon: group.icon,
+    topics: group.topics
+  };
+}
+
+function scoreCourseAgainstProfile(course, profileTerms) {
+  const tokens = normalizeKeywordList(`${course.title || ''} ${course.description || ''} ${course.level || ''}`);
+  const uniqueTokens = new Set(tokens);
+  let score = 0;
+
+  profileTerms.forEach((term) => {
+    if (uniqueTokens.has(term)) {
+      score += 5;
+      return;
+    }
+
+    const partialMatch = Array.from(uniqueTokens).some((token) => token.includes(term) || term.includes(token));
+    if (partialMatch) {
+      score += 2;
+    }
+  });
+
+  if ((course.level || '').toLowerCase() === 'beginner') {
+    score += 1;
+  }
+
+  score += Number(course.students || 0) * 0.02;
+  return score;
+}
+
+function buildPraptiRecommendations(courses, profileTerms) {
+  return courses
+    .map((course) => {
+      const metadata = inferCourseMetadata(course);
+      const score = scoreCourseAgainstProfile(course, profileTerms);
+
+      return {
+        id: course.id,
+        title: course.title,
+        desc: course.description,
+        duration: course.duration,
+        level: course.level,
+        instructor: course.instructor,
+        price: course.price,
+        students: course.students || 0,
+        rating: Number((4.3 + Math.min(Number(course.students || 0) * 0.01, 0.6)).toFixed(1)),
+        category: metadata.category,
+        icon: metadata.icon,
+        topics: metadata.topics,
+        praptiScore: score,
+        reason: profileTerms.length
+          ? `Matched to ${profileTerms.slice(0, 3).join(', ')}`
+          : 'Recommended as a strong next learning step'
+      };
+    })
+    .sort((left, right) => right.praptiScore - left.praptiScore || Number(right.students || 0) - Number(left.students || 0));
+}
+
 process.on('unhandledRejection', (err) => {
   if (err && err.code === 'SQLITE_CORRUPT') {
     console.error('Database corruption detected:', err.message);
@@ -440,7 +548,7 @@ app.post('/api/register', (req, res) => {
         res.status(201).json({ 
           message: '✅ Registration successful!', 
           token, 
-          user: { id: userId, name, email, role } 
+          user: { id: userId, name, email, role, skills: Array.isArray(skills) ? skills : [] } 
         });
       }
     );
@@ -472,10 +580,14 @@ app.post('/api/login', (req, res) => {
       }
 
       const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+      const userSkills = user.skills
+        ? user.skills.split(',').map((item) => item.trim()).filter(Boolean)
+        : [];
+
       res.json({ 
         message: '✅ Login successful!', 
         token, 
-        user: { id: user.id, name: user.name, email: user.email, role: user.role } 
+        user: { id: user.id, name: user.name, email: user.email, role: user.role, skills: userSkills } 
       });
     });
   });
@@ -491,6 +603,61 @@ app.get('/api/courses', (req, res) => {
   });
 });
 
+
+app.post('/api/recommend', (req, res) => {
+  const { user_id, skills } = req.body || {};
+  const providedSkills = Array.isArray(skills) ? skills.join(', ') : String(skills || '');
+
+  const continueWithProfile = (storedSkillsText) => {
+    const profileTerms = Array.from(new Set([
+      ...normalizeKeywordList(storedSkillsText),
+      ...normalizeKeywordList(providedSkills)
+    ]));
+
+    db.all(`${COURSE_SELECT_SQL} GROUP BY c.id ORDER BY c.created_at DESC, c.id DESC`, (courseErr, courses) => {
+      if (courseErr) {
+        return res.status(500).json({ success: false, error: 'Failed to generate recommendations.' });
+      }
+
+      const continueWithEnrollments = (enrolledIds) => {
+        const availableCourses = (courses || []).filter((course) => !enrolledIds.includes(Number(course.id)));
+        const rankedCourses = buildPraptiRecommendations(availableCourses, profileTerms).slice(0, 3);
+
+        res.json({
+          success: true,
+          engine: 'Prapti-CourseRecommendations',
+          matchedSkills: profileTerms,
+          recommendations: rankedCourses
+        });
+      };
+
+      if (!user_id) {
+        return continueWithEnrollments([]);
+      }
+
+      db.all('SELECT course_id FROM enrollments WHERE user_id = ?', [user_id], (enrollmentErr, enrollments) => {
+        if (enrollmentErr) {
+          return res.status(500).json({ success: false, error: 'Failed to load enrollment context.' });
+        }
+
+        const enrolledIds = (enrollments || []).map((item) => Number(item.course_id));
+        return continueWithEnrollments(enrolledIds);
+      });
+    });
+  };
+
+  if (!user_id) {
+    return continueWithProfile('');
+  }
+
+  db.get('SELECT skills FROM users WHERE id = ?', [user_id], (userErr, user) => {
+    if (userErr) {
+      return res.status(500).json({ success: false, error: 'Failed to load learner profile.' });
+    }
+
+    return continueWithProfile(user?.skills || '');
+  });
+});
 
 // Get Course by ID
 app.get('/api/courses/:id', (req, res) => {
