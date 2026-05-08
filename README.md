@@ -1,45 +1,45 @@
-# Adz4Needz Learning Platform
+# ADZ4NEEDZ – AI Learning Platform
 
-Full-stack learning platform with separate dashboards for students, trainers, and admins.
+An AI-powered education platform connecting learners and trainers.
 
-## Requirements
+## Features
+- **Role-Based Dashboards**: Customized experiences for Students, Trainers, and Admins.
+- **Course Marketplace**: Browse and search through verified courses.
+- **Razorpay Integration**: Fully functional payment gateway for course purchases.
+- **AI Recommender**: Smart course suggestions based on user skills.
+- **Role-Based Auth**: Secure login/register with Firebase.
+- **Full-Stack Architecture**: Express backend for sensitive operations (Payments) and Vite frontend for speed.
 
-- Node.js 18 or newer
-- npm
+## Quick Start (Bypass Permission Issues)
 
-## Install
+If you are facing `EPERM` or `Admin` folder errors on Windows, use this exact command in your terminal to start the server:
 
-```bash
-npm install
+```powershell
+$env:NVM_HOME="C:\Users\shrey\AppData\Local\nvm"; $env:NVM_SYMLINK="C:\nvm4w\nodejs"; .\node_modules\\.bin\tsx server.ts
 ```
 
-## Run
+Once running, visit **http://localhost:3000** in your browser.
 
-```bash
-npm start
-```
+## Setup Instructions
+1. **Clone & Install**: `npm install`
+2. **Environment Variables**:
+   - Create a `.env` file based on `.env.example`.
+   - Add your `GEMINI_API_KEY`.
+   - Add your `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET`.
+3. **Run Development**: `npm run dev`
+4. **Build for Production**: `npm run build`
+5. **Start Production**: `npm run start`
 
-The server starts on `http://localhost:3000`.
+## Tech Stack
+- **Frontend**: React (Vite), Tailwind CSS, Lucide React, Framer Motion (Motion).
+- **Backend**: Node.js, Express, Razorpay SDK.
+- **Database**: Firebase Firestore.
+- **Auth**: Firebase Authentication.
 
-## How To Use
-
-1. Open `http://localhost:3000` in your browser.
-2. Register or log in as a `student`, `trainer`, or `admin`.
-3. After login, you will be redirected to the correct dashboard.
-
-## Notes
-
-- Data is stored in `database.db` using SQLite.
-- Tables are created automatically on startup.
-- Sample courses are seeded automatically if they do not already exist.
-- Duplicate seeded courses are cleaned up on startup.
-- Student todos are saved through the backend API.
-- Admin settings are saved in the `admin_settings` table.
-
-## Main Files
-
-- `server.js` - Express server and API routes
-- `public/index.html` - login and registration page
-- `public/student-dashboard.html` - student dashboard
-- `public/trainer-dashboard.html` - trainer dashboard
-- `public/admin-dashboard.html` - admin dashboard
+## Key Paths
+- `/`: Landing Page
+- `/courses`: Marketplace
+- `/login`: Secure Entry
+- `/dashboard/student`: Student Hub
+- `/dashboard/trainer`: Trainer Management
+- `/dashboard/admin`: System Oversight

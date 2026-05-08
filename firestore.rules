@@ -1,0 +1,112 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Phase 3: Primitives
+    function isSignedIn() { return request.auth != null; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    
+    function getUserData(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data;
+    }
+    
+    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
+    function isAdmin() { 
+      return isSignedIn() && getUserData(request.auth.uid).role == 'admin';
+    }
+    function isTrainer() {
+      return isSignedIn() && getUserData(request.auth.uid).role == 'trainer';
+    }
+
+    // 1. User Rules
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.fullName is string && data.fullName.size() <= 100 &&
+               data.email is string && data.email.size() <= 100 &&
+               data.role in ['student', 'trainer', 'admin'] &&
+               data.status in ['approved', 'suspended', 'pending'];
+      }
+
+      allow get: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin() || (isSignedIn() && resource.data.role == 'trainer'); // Trainers can see students?
+      
+      allow create: if isSignedIn() && isOwner(userId) && 
+                      isValidUser(incoming()) && 
+                      incoming().role != 'admin' && // Can't self-promote to admin
+                      incoming().status == 'pending'; // Initial status
+      
+      allow update: if isSignedIn() && (
+        (isOwner(userId) && isValidUser(incoming()) && 
+         incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'skills', 'updatedAt']) &&
+         incoming().role == existing().role && 
+         incoming().status == existing().status) ||
+        (isAdmin() && isValidUser(incoming()) && 
+         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'role']))
+      );
+    }
+
+    // 2. Course Rules
+    match /courses/{courseId} {
+      function isValidCourse(data) {
+        return data.title is string && data.title.size() <= 200 &&
+               data.instructorId is string &&
+               data.price is number && data.price >= 0 &&
+               data.status in ['pending', 'approved', 'rejected'];
+      }
+
+      allow read: if resource.data.status == 'approved' || (isSignedIn() && (resource.data.instructorId == request.auth.uid || isAdmin()));
+      
+      allow create: if isTrainer() && isValidCourse(incoming()) && 
+                      incoming().instructorId == request.auth.uid &&
+                      incoming().status == 'pending';
+      
+      allow update: if isSignedIn() && isValidCourse(incoming()) && (
+        (isTrainer() && existing().instructorId == request.auth.uid && 
+         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'thumbnail', 'category', 'skillsRequired'])) ||
+        (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['status']))
+      );
+      
+      allow delete: if isAdmin();
+    }
+
+    // 3. Purchase Rules
+    match /purchases/{purchaseId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      // Purchases usually created by backend after callback, but if client creates pending...
+      // For this app, let's assume backend verifies, but rules prevent spoofing.
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && 
+                      incoming().status == 'pending';
+    }
+
+    // 4. Submission Rules
+    match /submissions/{submissionId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || 
+                     getUserData(request.auth.uid).role == 'trainer' || isAdmin());
+      
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+      
+      allow update: if isSignedIn() && (
+        (isOwner(existing().userId) && incoming().diff(existing()).affectedKeys().hasOnly(['content'])) ||
+        (isTrainer() && incoming().diff(existing()).affectedKeys().hasOnly(['grade', 'feedback', 'status']))
+      );
+    }
+
+    // 5. Assessment Rules
+    match /assessments/{assessmentId} {
+      allow read: if isSignedIn();
+      allow write: if isTrainer() || isAdmin();
+    }
+
+    // 6. Certificate Rules
+    match /certificates/{certificateId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isTrainer() || isAdmin();
+    }
+  }
+}

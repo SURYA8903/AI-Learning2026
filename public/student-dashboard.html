@@ -97,6 +97,10 @@
   </style>
   <link rel="stylesheet" href="/premium-ui.css">
   <script src="/premium-ui.js" defer></script>
+  <script src="/assignments.js" defer></script>
+  <script src="/classes.js" defer></script>
+  <script src="/dashboard.js" defer></script>
+  <script src="/doubt-widget.js" defer></script>
 </head>
 <body class="bg-gray-50">
   <div class="flex h-screen">
@@ -109,8 +113,8 @@
       <nav class="flex-1 space-y-2">
         <div class="nav-item active" data-nav="dashboard" onclick="showSection('dashboard', event)">Dashboard</div>
         <div class="nav-item" data-nav="courses" onclick="showSection('courses', event)">My Courses</div>
-        <div class="nav-item" data-nav="ai-recommend" onclick="showSection('ai-recommend', event)">Recommendations</div>
         <div class="nav-item" data-nav="todos" onclick="showSection('todos', event)">To-Do List</div>
+        <div class="nav-item" data-nav="certificates" onclick="showSection('certificates', event)">Certificates</div>
         <div class="nav-item" data-nav="achievements" onclick="showSection('achievements', event)">Achievements</div>
         <div class="nav-item" data-nav="settings" onclick="showSection('settings', event)">Settings</div>
       </nav>
@@ -136,21 +140,26 @@
             <p class="text-gray-600">Track real course progress, plan your tasks, and keep learning momentum.</p>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div class="stat-card">
-              <div class="text-3xl mb-2">1</div>
-              <p class="text-gray-600 text-sm">Enrolled Courses</p>
-              <p class="text-2xl font-black text-purple-500" id="enrolledCount"></p>
+              <div class="text-2xl mb-1">📚</div>
+              <p class="text-gray-600 text-xs">Enrolled</p>
+              <p class="text-xl font-black text-purple-500" id="enrolledCount"></p>
             </div>
             <div class="stat-card">
-              <div class="text-3xl mb-2">2</div>
-              <p class="text-gray-600 text-sm">Average Progress</p>
-              <p class="text-2xl font-black aqua-gradient-text" id="averageProgress">0%</p>
+              <div class="text-2xl mb-1">📊</div>
+              <p class="text-gray-600 text-xs">Avg. Progress</p>
+              <p class="text-xl font-black aqua-gradient-text" id="dashAverageProgress">0%</p>
             </div>
             <div class="stat-card">
-              <div class="text-3xl mb-2">3</div>
-              <p class="text-gray-600 text-sm">Completed Courses</p>
-              <p class="text-2xl font-black text-orange-500" id="completedCount">0</p>
+              <div class="text-2xl mb-1">📝</div>
+              <p class="text-gray-600 text-xs">Assignments</p>
+              <p class="text-xl font-black text-orange-500" id="dashPendingAssignments">0</p>
+            </div>
+            <div class="stat-card">
+              <div class="text-2xl mb-1">🎥</div>
+              <p class="text-gray-600 text-xs">Live Classes</p>
+              <p class="text-xl font-black text-blue-500" id="dashUpcomingClasses">0</p>
             </div>
           </div>
 
@@ -169,57 +178,6 @@
           <h2 class="text-3xl font-black text-gray-900 mb-6">My Enrolled Courses</h2>
           <div id="enrolledCoursesList" class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="text-center py-8 text-gray-500 col-span-full">Loading your courses...</div>
-          </div>
-        </section>
-
-        <!-- ── AI COURSE RECOMMENDATION SECTION ─────────────────────────────── -->
-        <!-- Integrated from partner project's recommendation engine              -->
-        <section data-section="ai-recommend" class="section hidden space-y-8">
-          <div>
-            <h2 class="text-3xl font-black text-gray-900 mb-2">AI Course Recommendations</h2>
-            <p class="text-gray-600">Tell us your interests or skills and our AI will suggest the best courses for you.</p>
-          </div>
-
-          <div class="bg-white rounded-2xl shadow-sm border-2 border-gray-100 p-6">
-            <label class="block text-sm font-bold text-gray-700 mb-2">What do you want to learn? (e.g. Python, React, Machine Learning)</label>
-            <div class="flex gap-3">
-              <input
-                id="recommendInput"
-                type="text"
-                placeholder="e.g. python, machine learning, web development..."
-                class="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl text-sm focus:outline-none focus:border-purple-500 transition"
-                onkeydown="if(event.key==='Enter') getRecommendations()"
-              />
-              <button
-                onclick="getRecommendations()"
-                class="btn-primary px-6 py-3 whitespace-nowrap"
-              >
-                Get Recommendations
-              </button>
-            </div>
-            <div class="mt-3 flex flex-wrap gap-2">
-              <span class="text-xs text-gray-500">Try:</span>
-              <button onclick="quickRecommend('python beginner')" class="text-xs bg-purple-50 text-purple-700 px-3 py-1 rounded-full hover:bg-purple-100 transition">Python Beginner</button>
-              <button onclick="quickRecommend('machine learning ai')" class="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full hover:bg-blue-100 transition">Machine Learning</button>
-              <button onclick="quickRecommend('web development javascript react')" class="text-xs bg-green-50 text-green-700 px-3 py-1 rounded-full hover:bg-green-100 transition">Web Dev</button>
-              <button onclick="quickRecommend('data science')" class="text-xs bg-orange-50 text-orange-700 px-3 py-1 rounded-full hover:bg-orange-100 transition">Data Science</button>
-              <button onclick="quickRecommend('devops docker aws')" class="text-xs bg-cyan-50 text-cyan-700 px-3 py-1 rounded-full hover:bg-cyan-100 transition">DevOps</button>
-            </div>
-          </div>
-
-          <div id="recommendResults" class="hidden">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">Recommended Courses For You</h3>
-            <div id="recommendGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
-          </div>
-
-          <div id="recommendLoading" class="hidden text-center py-12">
-            <div class="text-4xl mb-3 animate-pulse"></div>
-            <p class="text-gray-500 font-medium">Finding the best courses for you...</p>
-          </div>
-
-          <div id="recommendEmpty" class="hidden text-center py-12 text-gray-500">
-            <div class="text-4xl mb-3">🔍</div>
-            <p>No courses found for that search. Try different keywords!</p>
           </div>
         </section>
 
@@ -278,6 +236,13 @@
           <h2 class="text-3xl font-black text-gray-900 mb-6">Achievements</h2>
           <div id="achievementsGrid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
             <div class="text-center py-8 text-gray-500 col-span-full">Loading achievements...</div>
+          </div>
+        </section>
+
+        <section data-section="certificates" class="section hidden">
+          <h2 class="text-3xl font-black text-gray-900 mb-6">My Certificates</h2>
+          <div id="certificatesList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div class="text-center py-8 text-gray-500 col-span-full">Complete courses to earn certificates.</div>
           </div>
         </section>
 
@@ -340,14 +305,38 @@
     </div>
   </div>
 
+  <div id="submitModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6">
+      <div class="flex justify-between items-start mb-4">
+        <h3 id="submitModalTitle" class="text-xl font-bold text-gray-900">Submit Assignment</h3>
+        <button onclick="closeSubmitModal()" class="text-2xl text-gray-400 hover:text-gray-600">&times;</button>
+      </div>
+      <div class="space-y-4">
+        <p id="submitAsgName" class="text-gray-600 font-semibold"></p>
+        <textarea id="submitContent" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg h-32" placeholder="Enter your response or link here..."></textarea>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button onclick="closeSubmitModal()" class="flex-1 py-2 px-4 bg-gray-100 text-gray-900 font-bold rounded-lg hover:bg-gray-200">Cancel</button>
+        <button onclick="handleFinalSubmission()" class="flex-1 btn-primary">Submit Now</button>
+      </div>
+    </div>
+  </div>
+
+
   <script>
     const API_URL = 'http://localhost:3000/api';
     let currentCourse = null;
+    let currentAssignment = null;
     let currentUser = null;
     let allCourses = [];
     let enrolledCourses = [];
     let enrolledIds = [];
     let todos = [];
+    const recommendationLevelClasses = {
+      Beginner: 'bg-green-100 text-green-700',
+      Intermediate: 'bg-yellow-100 text-yellow-700',
+      Advanced: 'bg-red-100 text-red-700'
+    };
 
     function showSection(sectionName, event) {
       document.querySelectorAll('[data-section]').forEach((section) => {
@@ -357,6 +346,12 @@
       const targetSection = document.querySelector(`[data-section="${sectionName}"]`);
       if (targetSection) {
         targetSection.classList.remove('hidden');
+        
+        // Load section-specific data
+        if (sectionName === 'assignments') loadAssignments(currentUser.id);
+        if (sectionName === 'classes') loadClasses(currentUser.id);
+        if (sectionName === 'certificates') loadCertificates(currentUser.id);
+        if (sectionName === 'dashboard') loadDashboardStats(currentUser.id);
       }
 
       document.querySelectorAll('[data-nav]').forEach((item) => {
@@ -388,10 +383,15 @@
         return false;
       }
 
-      document.getElementById('userName').textContent = currentUser.name;
-      document.getElementById('welcomeName').textContent = currentUser.name.split(' ')[0];
-      document.getElementById('settingsName').textContent = currentUser.name;
-      document.getElementById('settingsEmail').textContent = currentUser.email;
+      const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+      };
+
+      setVal('userName', currentUser.name);
+      setVal('welcomeName', currentUser.name.split(' ')[0]);
+      setVal('settingsName', currentUser.name);
+      setVal('settingsEmail', currentUser.email);
       return true;
     }
 
@@ -427,12 +427,24 @@
         ? Math.round(enrolledCourses.reduce((sum, course) => sum + Number(course.progress || 0), 0) / enrolledCount)
         : 0;
 
-      document.getElementById('enrolledCount').textContent = enrolledCount;
-      document.getElementById('averageProgress').textContent = `${averageProgressValue}%`;
-      document.getElementById('completedCount').textContent = completedCount;
-      document.getElementById('settingsEnrollmentCount').textContent = enrolledCount;
-      document.getElementById('settingsAverageProgress').textContent = `${averageProgressValue}%`;
-      document.getElementById('settingsCompletedCount').textContent = completedCount;
+      const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.textContent = val;
+        } else {
+          console.warn(`Element with ID "${id}" not found.`);
+        }
+      };
+
+      // Dashboard Stats
+      setVal('enrolledCount', enrolledCount);
+      setVal('dashAverageProgress', `${averageProgressValue}%`);
+      setVal('completedCount', completedCount); // Add this if needed in HTML
+
+      // Settings Stats
+      setVal('settingsEnrollmentCount', enrolledCount);
+      setVal('settingsAverageProgress', `${averageProgressValue}%`);
+      setVal('settingsCompletedCount', completedCount);
     }
 
     function displayDashboardCourses(courses) {
@@ -536,6 +548,97 @@
       `).join('');
     }
 
+    function quickRecommend(text) {
+      document.getElementById('recommendInput').value = text;
+      getRecommendations();
+    }
+
+    async function getRecommendations() {
+      const input = document.getElementById('recommendInput').value.trim();
+      const results = document.getElementById('recommendResults');
+      const loading = document.getElementById('recommendLoading');
+      const empty = document.getElementById('recommendEmpty');
+
+      if (!input) {
+        alert('Please enter your interests or skills first.');
+        return;
+      }
+
+      results.classList.add('hidden');
+      empty.classList.add('hidden');
+      loading.classList.remove('hidden');
+
+      try {
+        const response = await fetch(`${API_URL}/recommend`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ skills: input })
+        });
+        const data = await response.json();
+
+        loading.classList.add('hidden');
+
+        if (!response.ok || !data.success || !Array.isArray(data.recommendations) || !data.recommendations.length) {
+          empty.classList.remove('hidden');
+          return;
+        }
+
+        renderRecommendations(data.recommendations);
+      } catch (error) {
+        console.error('Recommendation error:', error);
+        loading.classList.add('hidden');
+        empty.classList.remove('hidden');
+      }
+    }
+
+    function renderRecommendations(courses) {
+      const grid = document.getElementById('recommendGrid');
+
+      grid.innerHTML = courses.map((course) => {
+        const encodedCourse = encodeURIComponent(JSON.stringify(course));
+        const levelClass = recommendationLevelClasses[course.level] || 'bg-gray-100 text-gray-600';
+
+        return `
+          <div class="course-card flex flex-col gap-3">
+            <div class="flex items-start gap-3">
+              <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center text-2xl shrink-0">${course.icon || 'C'}</div>
+              <div class="min-w-0 flex-1">
+                <h4 class="font-bold text-gray-900 text-sm leading-tight">${course.title}</h4>
+                <p class="text-xs text-gray-500 mt-1">${course.category}</p>
+              </div>
+            </div>
+            <p class="text-sm text-gray-600">${course.desc}</p>
+            <div class="flex flex-wrap gap-2 text-xs">
+              <span class="px-2 py-1 rounded-full ${levelClass}">${course.level}</span>
+              <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded-full">${course.duration}</span>
+              <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded-full">Rating ${course.rating}</span>
+            </div>
+            <div class="flex flex-wrap gap-1">
+              ${(course.topics || []).slice(0, 4).map((topic) => `<span class="text-xs bg-purple-50 text-purple-600 px-2 py-0.5 rounded">${topic}</span>`).join('')}
+            </div>
+            <button onclick="askDoubtAboutCourse('${encodedCourse}')" class="mt-auto text-sm text-purple-600 font-semibold hover:underline text-left">
+              Ask about this course
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('recommendResults').classList.remove('hidden');
+    }
+
+    function askDoubtAboutCourse(encodedCourse) {
+      const course = JSON.parse(decodeURIComponent(encodedCourse));
+      if (!window.DoubtWidget) {
+        return;
+      }
+
+      window.DoubtWidget.setCourse(course);
+      const panel = document.getElementById('doubtPanel');
+      if (panel && !panel.classList.contains('open')) {
+        window.DoubtWidget.toggle();
+      }
+    }
+
     function showCourseDetails(courseId) {
       currentCourse = courseId;
       fetch(`${API_URL}/courses/${courseId}`)
@@ -637,9 +740,14 @@
       const highPriority = todos.filter((todo) => todo.priority === 'high' && todo.status !== 'completed').length;
       const completed = todos.filter((todo) => todo.status === 'completed').length;
 
-      document.getElementById('pendingTodoCount').textContent = `${pending} task${pending === 1 ? '' : 's'}`;
-      document.getElementById('highTodoCount').textContent = `${highPriority} task${highPriority === 1 ? '' : 's'}`;
-      document.getElementById('completedTodoCount').textContent = `${completed} task${completed === 1 ? '' : 's'}`;
+      const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+      };
+
+      setVal('pendingTodoCount', `${pending} task${pending === 1 ? '' : 's'}`);
+      setVal('highTodoCount', `${highPriority} task${highPriority === 1 ? '' : 's'}`);
+      setVal('completedTodoCount', `${completed} task${completed === 1 ? '' : 's'}`);
     }
 
     async function handleTodoSubmit(event) {
@@ -714,7 +822,7 @@
       }
     }
 
-    window.addEventListener('load', async () => {
+    document.addEventListener('DOMContentLoaded', async () => {
       if (!localStorage.getItem('token')) {
         window.location.href = '/';
         return;
@@ -725,90 +833,12 @@
         return;
       }
 
-      await Promise.all([loadCourses(), loadTodos()]);
+      await Promise.all([
+        loadCourses(), 
+        loadTodos(),
+        loadDashboardStats(currentUser.id)
+      ]);
     });
-
-    // ── AI RECOMMENDATION FUNCTIONS ──────────────────────────────────────────
-    // Connected to /api/recommend endpoint (added to teammate's server.js)
-    async function getRecommendations() {
-      const input = document.getElementById('recommendInput').value.trim();
-      if (!input) {
-        alert('Please enter your skills or interests first.');
-        return;
-      }
-
-      document.getElementById('recommendResults').classList.add('hidden');
-      document.getElementById('recommendEmpty').classList.add('hidden');
-      document.getElementById('recommendLoading').classList.remove('hidden');
-
-      try {
-        const res = await fetch('/api/recommend', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ skills: input })
-        });
-        const data = await res.json();
-
-        document.getElementById('recommendLoading').classList.add('hidden');
-
-        if (data.success && data.recommendations && data.recommendations.length > 0) {
-          renderRecommendations(data.recommendations);
-        } else {
-          document.getElementById('recommendEmpty').classList.remove('hidden');
-        }
-      } catch (err) {
-        document.getElementById('recommendLoading').classList.add('hidden');
-        document.getElementById('recommendEmpty').classList.remove('hidden');
-        console.error('Recommendation error:', err);
-      }
-    }
-
-    function quickRecommend(text) {
-      document.getElementById('recommendInput').value = text;
-      getRecommendations();
-    }
-
-    function renderRecommendations(courses) {
-      const grid = document.getElementById('recommendGrid');
-      const levelColors = { Beginner: 'bg-green-100 text-green-700', Intermediate: 'bg-yellow-100 text-yellow-700', Advanced: 'bg-red-100 text-red-700' };
-
-      grid.innerHTML = courses.map(course => `
-        <div class="bg-white rounded-2xl shadow-sm border-2 border-gray-100 p-5 hover:border-purple-200 transition-all hover:shadow-md flex flex-col gap-3">
-          <div class="flex items-center gap-3">
-            <span class="text-3xl">${course.icon || '📚'}</span>
-            <div class="flex-1 min-w-0">
-              <h4 class="font-bold text-gray-900 text-sm leading-tight">${course.title}</h4>
-              <span class="text-xs text-gray-500">${course.category}</span>
-            </div>
-          </div>
-          <p class="text-xs text-gray-600 leading-relaxed">${course.desc}</p>
-          <div class="flex flex-wrap gap-2 text-xs">
-            <span class="px-2 py-1 rounded-full ${levelColors[course.level] || 'bg-gray-100 text-gray-600'}">${course.level}</span>
-            <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded-full">⏱ ${course.duration}</span>
-            <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded-full">⭐ ${course.rating}</span>
-          </div>
-          <div class="flex flex-wrap gap-1">
-            ${(course.topics || []).slice(0, 4).map(t => `<span class="text-xs bg-purple-50 text-purple-600 px-2 py-0.5 rounded">${t}</span>`).join('')}
-          </div>
-          <button onclick="askDoubtAboutCourse(${JSON.stringify(course).replace(/"/g, '&quot;')})"
-            class="mt-auto text-sm text-purple-600 font-semibold hover:underline text-left">
-            🤖 Ask about this course →
-          </button>
-        </div>
-      `).join('');
-
-      document.getElementById('recommendResults').classList.remove('hidden');
-    }
-
-    // Opens the doubt widget pre-set to a recommended course context
-    function askDoubtAboutCourse(course) {
-      if (window.DoubtWidget) {
-        DoubtWidget.setCourse(course);
-        if (!document.getElementById('doubtPanel').classList.contains('open')) {
-          DoubtWidget.toggle();
-        }
-      }
-    }
   </script>
 
   <!-- ── AI DOUBT SOLVER WIDGET ──────────────────────────────────────────── -->

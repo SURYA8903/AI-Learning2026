@@ -209,9 +209,10 @@
               <button type="button" class="role-chip" data-role="trainer" onclick="selectRole('trainer', 'register')">
                 👨‍🏫 Trainer
               </button>
-              
-             
-              
+              <button type="button" class="role-chip" data-role="admin" onclick="selectRole('admin', 'register')">
+                👨‍💼 admin
+              </button>
+      
             </div>
             <input type="hidden" id="registerRole" value="student">
           </div>
@@ -354,6 +355,16 @@
           chip.classList.remove('active');
         }
       });
+
+      // Show/hide skills section for registration form
+      if (form === 'register') {
+        const skillsSection = document.getElementById('skillsSection');
+        if (role === 'student') {
+          skillsSection.classList.remove('hidden');
+        } else {
+          skillsSection.classList.add('hidden');
+        }
+      }
     }
 
     function toggleSkill(skill) {
