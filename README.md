@@ -15,7 +15,7 @@ An AI-powered education platform connecting learners and trainers.
 If you are facing `EPERM` or `Admin` folder errors on Windows, use this exact command in your terminal to start the server:
 
 ```powershell
-$env:NVM_HOME="C:\Users\shrey\AppData\Local\nvm"; $env:NVM_SYMLINK="C:\nvm4w\nodejs"; .\node_modules\.bin\tsx server.ts
+$env:NVM_HOME="C:\Users\shrey\AppData\Local\nvm"; $env:NVM_SYMLINK="C:\nvm4w\nodejs"; .\node_modules\\.bin\tsx server.ts
 ```
 
 Once running, visit **http://localhost:3000** in your browser.
