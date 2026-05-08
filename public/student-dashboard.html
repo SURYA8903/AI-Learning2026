@@ -113,9 +113,6 @@
       <nav class="flex-1 space-y-2">
         <div class="nav-item active" data-nav="dashboard" onclick="showSection('dashboard', event)">Dashboard</div>
         <div class="nav-item" data-nav="courses" onclick="showSection('courses', event)">My Courses</div>
-        <div class="nav-item" data-nav="ai-recommend" onclick="showSection('ai-recommend', event)">Recommendations</div>
-        <div class="nav-item" data-nav="assignments" onclick="showSection('assignments', event)">Assignments</div>
-        <div class="nav-item" data-nav="classes" onclick="showSection('classes', event)">Live Classes</div>
         <div class="nav-item" data-nav="todos" onclick="showSection('todos', event)">To-Do List</div>
         <div class="nav-item" data-nav="certificates" onclick="showSection('certificates', event)">Certificates</div>
         <div class="nav-item" data-nav="achievements" onclick="showSection('achievements', event)">Achievements</div>
@@ -181,76 +178,6 @@
           <h2 class="text-3xl font-black text-gray-900 mb-6">My Enrolled Courses</h2>
           <div id="enrolledCoursesList" class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="text-center py-8 text-gray-500 col-span-full">Loading your courses...</div>
-          </div>
-        </section>
-
-        <section data-section="ai-recommend" class="section hidden space-y-8">
-          <div>
-            <h2 class="text-3xl font-black text-gray-900 mb-2">AI Course Recommendations</h2>
-            <p class="text-gray-600">Share your interests or skills and get course suggestions instantly.</p>
-          </div>
-
-          <div class="panel-card">
-            <label class="block text-sm font-bold text-gray-700 mb-2">What do you want to learn?</label>
-            <div class="flex flex-col md:flex-row gap-3">
-              <input
-                id="recommendInput"
-                type="text"
-                placeholder="python, machine learning, react, devops..."
-                class="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl text-sm focus:outline-none focus:border-purple-500 transition"
-                onkeydown="if(event.key==='Enter'){ event.preventDefault(); getRecommendations(); }"
-              >
-              <button onclick="getRecommendations()" class="btn-primary px-6 py-3 whitespace-nowrap">Get Recommendations</button>
-            </div>
-            <div class="mt-3 flex flex-wrap gap-2">
-              <span class="text-xs text-gray-500">Try:</span>
-              <button onclick="quickRecommend('python beginner')" class="text-xs bg-purple-50 text-purple-700 px-3 py-1 rounded-full hover:bg-purple-100 transition">Python Beginner</button>
-              <button onclick="quickRecommend('machine learning ai')" class="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full hover:bg-blue-100 transition">Machine Learning</button>
-              <button onclick="quickRecommend('web development javascript react')" class="text-xs bg-green-50 text-green-700 px-3 py-1 rounded-full hover:bg-green-100 transition">Web Dev</button>
-              <button onclick="quickRecommend('data science')" class="text-xs bg-orange-50 text-orange-700 px-3 py-1 rounded-full hover:bg-orange-100 transition">Data Science</button>
-              <button onclick="quickRecommend('devops docker aws')" class="text-xs bg-cyan-50 text-cyan-700 px-3 py-1 rounded-full hover:bg-cyan-100 transition">DevOps</button>
-            </div>
-          </div>
-
-          <div id="recommendResults" class="hidden">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">Recommended Courses For You</h3>
-            <div id="recommendGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
-          </div>
-
-          <div id="recommendLoading" class="hidden text-center py-12">
-            <p class="text-gray-500 font-medium">Finding the best courses for you...</p>
-          </div>
-
-          <div id="recommendEmpty" class="hidden text-center py-12 text-gray-500">
-            <p>No courses matched that search. Try different keywords.</p>
-          </div>
-        </section>
-
-        <section data-section="assignments" class="section hidden space-y-8">
-          <h2 class="text-3xl font-black text-gray-900 mb-2">Assignments</h2>
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div class="space-y-4">
-              <h3 class="text-xl font-bold text-gray-800">Pending</h3>
-              <div id="pendingAssignmentsList" class="space-y-4"></div>
-            </div>
-            <div class="space-y-4">
-              <h3 class="text-xl font-bold text-gray-800">Submitted</h3>
-              <div id="submittedAssignmentsList" class="space-y-4"></div>
-            </div>
-          </div>
-        </section>
-
-        <section data-section="classes" class="section hidden space-y-8">
-          <h2 class="text-3xl font-black text-gray-900 mb-2">Live & Recorded Classes</h2>
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div class="space-y-4">
-              <h3 class="text-xl font-bold text-gray-800">Upcoming Live</h3>
-              <div id="liveClassesList" class="space-y-4"></div>
-            </div>
-            <div class="space-y-4">
-              <h3 class="text-xl font-bold text-gray-800">Recorded Sessions</h3>
-              <div id="recordedClassesList" class="space-y-4"></div>
-            </div>
           </div>
         </section>
 
@@ -912,23 +839,10 @@
         loadDashboardStats(currentUser.id)
       ]);
     });
-    function showSubmitModal(asgId, asgTitle) {
-      currentAssignment = asgId;
-      document.getElementById('submitAsgName').textContent = asgTitle;
-      document.getElementById('submitModal').classList.remove('hidden');
-    }
-
-    function closeSubmitModal() {
-      document.getElementById('submitModal').classList.add('hidden');
-      document.getElementById('submitContent').value = '';
-    }
-
-    function handleFinalSubmission() {
-      const content = document.getElementById('submitContent').value.trim();
-      if (!content) return alert('Please enter some content');
-      submitAssignment(currentAssignment, currentUser.id, content);
-    }
   </script>
+
+  <!-- ── AI DOUBT SOLVER WIDGET ──────────────────────────────────────────── -->
+  <!-- Source: partner project's doubt-widget.js, endpoint updated to /api/ask-doubt -->
+  <script src="/doubt-widget.js"></script>
 </body>
 </html>
-
