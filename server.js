@@ -5,10 +5,128 @@ const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
+const nodemailer = require('nodemailer');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const JWT_SECRET = 'your-secret-key-change-in-production';
+
+// ============= OTP CONFIGURATION =============
+const OTP_EXPIRY_TIME = 10 * 60 * 1000; // 10 minutes
+const OTP_LENGTH = 6;
+
+// Temporary registration data store
+const pendingRegistrations = {};
+
+// OTP store
+const otpStore = {};
+
+// Generate OTP
+function generateOTP(length = OTP_LENGTH) {
+  return Math.floor(
+    Math.pow(10, length - 1) + Math.random() * (Math.pow(10, length) - Math.pow(10, length - 1))
+  ).toString();
+}
+
+// Send OTP via email
+async function sendOTPEmail(email, otp, name) {
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.GMAIL_USER || 'surya30.04.05@gmail.com',
+        pass: process.env.GMAIL_PASSWORD || 'twwgmjwgvadwazxk',
+      },
+    });
+
+    const htmlTemplate = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body { font-family: Arial, sans-serif; background-color: #f5f5f5; }
+            .container { max-width: 600px; margin: 20px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+            .header { text-align: center; margin-bottom: 30px; }
+            .logo { font-size: 24px; font-weight: bold; color: #4F46E5; }
+            .content { text-align: center; }
+            .otp-code { font-size: 32px; font-weight: bold; color: #4F46E5; letter-spacing: 5px; margin: 30px 0; font-family: monospace; }
+            .message { color: #666; line-height: 1.6; }
+            .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #999; text-align: center; }
+            .warning { color: #dc2626; font-weight: bold; margin-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="logo">Adz4Needz</div>
+              <p style="color: #666; margin-top: 10px;">AI Learning Platform</p>
+            </div>
+            <div class="content">
+              <h2>OTP Verification</h2>
+              <p class="message">Hello ${name || 'User'},</p>
+              <p class="message">Your One-Time Password (OTP) for account verification is:</p>
+              <div class="otp-code">${otp}</div>
+              <p class="message" style="color: #999; font-size: 14px;">This code will expire in 10 minutes.</p>
+              <p class="warning">⚠️ Never share this code with anyone</p>
+            </div>
+            <div class="footer">
+              <p>If you didn't request this code, please ignore this email.</p>
+              <p>&copy; 2026 Adz4Needz. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    await transporter.sendMail({
+      from: process.env.GMAIL_USER || 'surya30.04.05@gmail.com',
+      to: email,
+      subject: 'Your OTP for Adz4Needz Account Verification',
+      html: htmlTemplate,
+    });
+
+    return true;
+  } catch (error) {
+    console.error('Error sending OTP email:', error);
+    return false;
+  }
+}
+
+// Verify OTP
+function verifyOTP(identifier, inputOTP) {
+  const otpData = otpStore[identifier];
+
+  if (!otpData) {
+    return { success: false, message: 'No OTP found. Request a new OTP.' };
+  }
+
+  if (Date.now() - otpData.timestamp > OTP_EXPIRY_TIME) {
+    delete otpStore[identifier];
+    return { success: false, message: 'OTP has expired. Request a new OTP.' };
+  }
+
+  if (otpData.attempts >= 5) {
+    delete otpStore[identifier];
+    return { success: false, message: 'Too many failed attempts. Request a new OTP.' };
+  }
+
+  if (otpData.code !== inputOTP) {
+    otpData.attempts++;
+    return { 
+      success: false, 
+      message: `Invalid OTP. ${5 - otpData.attempts} attempts remaining.` 
+    };
+  }
+
+  otpData.verified = true;
+  return { success: true, message: 'OTP verified successfully!' };
+}
+
+// Clear OTP
+function clearOTP(identifier) {
+  delete otpStore[identifier];
+}
 
 // Password Validation Function
 function validatePasswordStrength(password) {
@@ -363,6 +481,19 @@ const initializeDatabase = () => {
       )
     `);
 
+    // Password Reset Tokens Table
+    db.run(`
+      CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT NOT NULL,
+        token TEXT UNIQUE NOT NULL,
+        expires_at DATETIME NOT NULL,
+        used BOOLEAN DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(email) REFERENCES users(email)
+      )
+    `);
+
     db.run(`
       UPDATE enrollments
       SET course_id = (
@@ -492,8 +623,8 @@ seedTrainerExtras();
 
 // ============= AUTHENTICATION APIs =============
 
-// Register Endpoint
-app.post('/api/register', (req, res) => {
+// Request OTP for Registration (Step 1: Validate and Send OTP)
+app.post('/api/register/request-otp', async (req, res) => {
   const { name, email, phone, password, confirmPassword, role, skills } = req.body;
 
   // Validation
@@ -522,36 +653,121 @@ app.post('/api/register', (req, res) => {
     return res.status(400).json({ error: '❌ Please enter a valid phone number!' });
   }
 
-  // Hash password
-  bcrypt.hash(password, 10, (err, hash) => {
+  // Check if email already exists
+  db.get('SELECT id FROM users WHERE email = ?', [email], async (err, existingUser) => {
     if (err) return res.status(500).json({ error: '❌ Server error!' });
 
-    const skillsStr = skills ? skills.join(',') : '';
-    db.run(
-      'INSERT INTO users (name, email, phone, password, role, skills) VALUES (?, ?, ?, ?, ?, ?)',
-      [name, email, phone, hash, role, skillsStr],
-      function(err) {
-        if (err) {
-          console.error('Registration failed:', err.message);
-          if (err.message.includes('UNIQUE')) {
-            return res.status(400).json({ error: '❌ Email already registered!' });
-          }
-          return res.status(500).json({ error: '❌ Registration failed!' });
-        }
+    if (existingUser) {
+      return res.status(400).json({ error: '❌ Email already registered!' });
+    }
 
-        const userId = this.lastID;
-        if (role === 'trainer') {
-          seedTrainerExtras();
-        }
+    // Hash password
+    bcrypt.hash(password, 10, async (err, hash) => {
+      if (err) return res.status(500).json({ error: '❌ Server error!' });
 
-        const token = jwt.sign({ id: userId, email, role }, JWT_SECRET, { expiresIn: '7d' });
-        res.status(201).json({ 
-          message: '✅ Registration successful!', 
-          token, 
-          user: { id: userId, name, email, role, skills: Array.isArray(skills) ? skills : [] } 
-        });
+      // Generate OTP
+      const otp = generateOTP();
+
+      // Store registration data temporarily
+      pendingRegistrations[email] = {
+        name,
+        email,
+        phone,
+        password: hash,
+        role,
+        skills: skills || [],
+        otp,
+        timestamp: Date.now(),
+        verified: false
+      };
+
+      // Send OTP email
+      const emailSent = await sendOTPEmail(email, otp, name);
+
+      if (!emailSent) {
+        delete pendingRegistrations[email];
+        return res.status(500).json({ error: '❌ Failed to send OTP. Please try again.' });
       }
-    );
+
+      // Store OTP
+      otpStore[email] = {
+        code: otp,
+        timestamp: Date.now(),
+        attempts: 0,
+        verified: false
+      };
+
+      res.json({ 
+        message: '✅ OTP sent to your email. Please verify to complete registration.',
+        email 
+      });
+    });
+  });
+});
+
+// Verify OTP and Complete Registration (Step 2: Verify OTP and Create User)
+app.post('/api/register/verify-otp', (req, res) => {
+  const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    return res.status(400).json({ error: '❌ Email and OTP are required!' });
+  }
+
+  // Verify OTP
+  const otpResult = verifyOTP(email, otp);
+  if (!otpResult.success) {
+    return res.status(400).json({ error: `❌ ${otpResult.message}` });
+  }
+
+  // Get pending registration data
+  const pendingReg = pendingRegistrations[email];
+  if (!pendingReg) {
+    return res.status(400).json({ error: '❌ No registration found. Please register again.' });
+  }
+
+  // Create user
+  const skillsStr = pendingReg.skills ? pendingReg.skills.join(',') : '';
+  db.run(
+    'INSERT INTO users (name, email, phone, password, role, skills) VALUES (?, ?, ?, ?, ?, ?)',
+    [pendingReg.name, pendingReg.email, pendingReg.phone, pendingReg.password, pendingReg.role, skillsStr],
+    function(err) {
+      if (err) {
+        console.error('Registration failed:', err.message);
+        return res.status(500).json({ error: '❌ Registration failed!' });
+      }
+
+      const userId = this.lastID;
+      if (pendingReg.role === 'trainer') {
+        seedTrainerExtras();
+      }
+
+      // Clean up
+      clearOTP(email);
+      delete pendingRegistrations[email];
+
+      // Create JWT token
+      const token = jwt.sign({ id: userId, email, role: pendingReg.role }, JWT_SECRET, { expiresIn: '7d' });
+      res.status(201).json({ 
+        message: '✅ Registration successful!', 
+        token, 
+        user: { 
+          id: userId, 
+          name: pendingReg.name, 
+          email: pendingReg.email, 
+          role: pendingReg.role, 
+          skills: Array.isArray(pendingReg.skills) ? pendingReg.skills : [] 
+        } 
+      });
+    }
+  );
+});
+
+// Legacy Register Endpoint (redirects to new flow)
+app.post('/api/register', (req, res) => {
+  // This endpoint is deprecated. Use /api/register/request-otp instead
+  return res.status(400).json({ 
+    error: '❌ Use /api/register/request-otp to start registration',
+    hint: 'First call /api/register/request-otp, then /api/register/verify-otp with the OTP'
   });
 });
 
@@ -590,6 +806,288 @@ app.post('/api/login', (req, res) => {
         user: { id: user.id, name: user.name, email: user.email, role: user.role, skills: userSkills } 
       });
     });
+  });
+});
+
+// ============= PASSWORD RESET ENDPOINTS =============
+
+// Generate reset token
+function generateResetToken() {
+  const crypto = require('crypto');
+  return crypto.randomBytes(32).toString('hex');
+}
+
+// Forgot Password Endpoint - Send reset token via email
+app.post('/api/forgot-password', async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ error: '❌ Email is required!' });
+  }
+
+  try {
+    // Check if user exists
+    db.get('SELECT * FROM users WHERE email = ?', [email], async (err, user) => {
+      if (err) {
+        return res.status(500).json({ error: '❌ Server error!' });
+      }
+
+      if (!user) {
+        // For security, don't reveal if email exists
+        return res.status(200).json({ message: '✅ If an account exists with this email, you will receive a password reset link.' });
+      }
+
+      try {
+        const crypto = require('crypto');
+        const resetToken = generateResetToken();
+        const expiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hour expiry
+
+        // Store reset token in database
+        db.run(
+          'INSERT INTO password_reset_tokens (email, token, expires_at) VALUES (?, ?, ?)',
+          [email, resetToken, expiresAt.toISOString()],
+          async (err) => {
+            if (err) {
+              console.error('Error storing reset token:', err);
+              return res.status(500).json({ error: '❌ Failed to create reset token!' });
+            }
+
+            try {
+              // Send reset email
+              const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                  user: process.env.GMAIL_USER || 'surya30.04.05@gmail.com',
+                  pass: process.env.GMAIL_PASSWORD || 'twwgmjwgvadwazxk',
+                },
+              });
+
+              const resetLink = `${req.protocol}://${req.get('host')}/reset-password.html?token=${resetToken}`;
+
+              const htmlTemplate = `
+                <!DOCTYPE html>
+                <html>
+                  <head>
+                    <meta charset="UTF-8">
+                    <style>
+                      body { font-family: Arial, sans-serif; background-color: #f5f5f5; }
+                      .container { max-width: 600px; margin: 20px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                      .header { text-align: center; margin-bottom: 30px; }
+                      .logo { font-size: 24px; font-weight: bold; color: #4F46E5; }
+                      .content { text-align: center; }
+                      .reset-button { display: inline-block; padding: 12px 30px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 5px; margin: 30px 0; font-weight: bold; }
+                      .message { color: #666; line-height: 1.6; }
+                      .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #999; text-align: center; }
+                      .warning { color: #dc2626; font-weight: bold; margin-top: 20px; font-size: 14px; }
+                    </style>
+                  </head>
+                  <body>
+                    <div class="container">
+                      <div class="header">
+                        <div class="logo">Adz4Needz</div>
+                        <p style="color: #666; margin-top: 10px;">AI Learning Platform</p>
+                      </div>
+                      <div class="content">
+                        <h2>Password Reset Request</h2>
+                        <p class="message">Hello ${user.name || 'User'},</p>
+                        <p class="message">We received a request to reset your password. Click the button below to create a new password.</p>
+                        <a href="${resetLink}" class="reset-button">Reset Password</a>
+                        <p class="message" style="color: #999; font-size: 14px;">This link will expire in 1 hour.</p>
+                        <p class="message">Or copy this link: <br><span style="word-break: break-all; color: #4F46E5; font-size: 12px;">${resetLink}</span></p>
+                        <p class="warning">⚠️ If you didn't request this, please ignore this email and your password will remain unchanged.</p>
+                      </div>
+                      <div class="footer">
+                        <p>&copy; 2026 Adz4Needz. All rights reserved.</p>
+                      </div>
+                    </div>
+                  </body>
+                </html>
+              `;
+
+              await transporter.sendMail({
+                from: process.env.GMAIL_USER || 'surya30.04.05@gmail.com',
+                to: email,
+                subject: 'Password Reset Request - Adz4Needz',
+                html: htmlTemplate,
+              });
+
+              return res.status(200).json({ 
+                message: '✅ Password reset link sent to your email. Please check your email inbox.' 
+              });
+            } catch (emailError) {
+              console.error('Error sending reset email:', emailError);
+              return res.status(500).json({ error: '❌ Failed to send reset email!' });
+            }
+          }
+        );
+      } catch (error) {
+        console.error('Error in forgot password:', error);
+        return res.status(500).json({ error: '❌ An error occurred!' });
+      }
+    });
+  } catch (error) {
+    console.error('Error in forgot password endpoint:', error);
+    return res.status(500).json({ error: '❌ Server error!' });
+  }
+});
+
+// Verify Reset Token Endpoint
+app.post('/api/verify-reset-token', (req, res) => {
+  const { token } = req.body;
+
+  if (!token) {
+    return res.status(400).json({ error: '❌ Reset token is required!' });
+  }
+
+  db.get(
+    'SELECT * FROM password_reset_tokens WHERE token = ? AND used = 0 AND expires_at > datetime("now")',
+    [token],
+    (err, row) => {
+      if (err) {
+        return res.status(500).json({ error: '❌ Server error!' });
+      }
+
+      if (!row) {
+        return res.status(400).json({ error: '❌ Invalid or expired reset token!' });
+      }
+
+      res.json({ 
+        message: '✅ Token is valid',
+        email: row.email
+      });
+    }
+  );
+});
+
+// Reset Password Endpoint
+app.post('/api/reset-password', (req, res) => {
+  const { token, newPassword, confirmPassword } = req.body;
+
+  if (!token || !newPassword || !confirmPassword) {
+    return res.status(400).json({ error: '❌ All fields are required!' });
+  }
+
+  if (newPassword !== confirmPassword) {
+    return res.status(400).json({ error: '❌ Passwords do not match!' });
+  }
+
+  // Validate password strength
+  const passwordErrors = validatePasswordStrength(newPassword);
+  if (passwordErrors.length > 0) {
+    return res.status(400).json({ error: '❌ ' + passwordErrors.join(', ') });
+  }
+
+  // Verify token
+  db.get(
+    'SELECT * FROM password_reset_tokens WHERE token = ? AND used = 0 AND expires_at > datetime("now")',
+    [token],
+    (err, row) => {
+      if (err) {
+        return res.status(500).json({ error: '❌ Server error!' });
+      }
+
+      if (!row) {
+        return res.status(400).json({ error: '❌ Invalid or expired reset token!' });
+      }
+
+      const email = row.email;
+
+      // Hash new password
+      bcrypt.hash(newPassword, 10, (err, hash) => {
+        if (err) {
+          return res.status(500).json({ error: '❌ Server error!' });
+        }
+
+        // Update user password
+        db.run(
+          'UPDATE users SET password = ? WHERE email = ?',
+          [hash, email],
+          function(err) {
+            if (err) {
+              console.error('Error updating password:', err);
+              return res.status(500).json({ error: '❌ Failed to reset password!' });
+            }
+
+            // Mark token as used
+            db.run(
+              'UPDATE password_reset_tokens SET used = 1 WHERE token = ?',
+              [token],
+              (err) => {
+                if (err) {
+                  console.error('Error marking token as used:', err);
+                }
+
+                res.json({ 
+                  message: '✅ Password reset successfully! Please login with your new password.' 
+                });
+              }
+            );
+          }
+        );
+      });
+    }
+  );
+});
+
+// ============= OTP API ENDPOINTS (Login OTP) =============
+
+// Send OTP for login
+app.post('/api/otp/send', async (req, res) => {
+  const { email, name } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ error: '❌ Email is required!' });
+  }
+
+  try {
+    // Generate OTP
+    const otp = generateOTP();
+
+    // Store OTP
+    otpStore[email] = {
+      code: otp,
+      timestamp: Date.now(),
+      attempts: 0,
+      verified: false
+    };
+
+    // Send OTP email
+    const emailSent = await sendOTPEmail(email, otp, name);
+
+    if (!emailSent) {
+      delete otpStore[email];
+      return res.status(500).json({ error: '❌ Failed to send OTP. Please try again.' });
+    }
+
+    res.json({ 
+      message: '✅ OTP sent to your email',
+      email 
+    });
+  } catch (error) {
+    console.error('Error sending OTP:', error);
+    return res.status(500).json({ error: '❌ Server error!' });
+  }
+});
+
+// Verify OTP for login
+app.post('/api/otp/verify', (req, res) => {
+  const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    return res.status(400).json({ error: '❌ Email and OTP are required!' });
+  }
+
+  // Verify OTP
+  const otpResult = verifyOTP(email, otp);
+  if (!otpResult.success) {
+    return res.status(400).json({ error: `❌ ${otpResult.message}` });
+  }
+
+  // Clear OTP after verification
+  clearOTP(email);
+
+  res.json({ 
+    message: '✅ OTP verified successfully!' 
   });
 });
 
