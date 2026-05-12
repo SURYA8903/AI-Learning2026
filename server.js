@@ -1906,6 +1906,82 @@ app.get('/api/courses/:courseId/students', (req, res) => {
   );
 });
 
+// Get all students not yet enrolled in a specific course (for trainer assignment)
+app.get('/api/courses/:courseId/available-students', (req, res) => {
+  const { courseId } = req.params;
+  db.all(
+    `SELECT u.id, u.name, u.email
+     FROM users u
+     WHERE u.role = 'student'
+     AND u.id NOT IN (
+       SELECT e.user_id FROM enrollments e WHERE e.course_id = ?
+     )
+     ORDER BY u.name ASC`,
+    [courseId],
+    (err, students) => {
+      if (err) return res.status(500).json({ error: 'Failed to fetch available students' });
+      res.json(students);
+    }
+  );
+});
+
+// Assign/enroll students to a course (trainer action)
+app.post('/api/courses/:courseId/assign-students', (req, res) => {
+  const { courseId } = req.params;
+  const { studentIds } = req.body;
+
+  if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
+    return res.status(400).json({ error: 'Student IDs array is required' });
+  }
+
+  let assigned = 0;
+  let failed = 0;
+  const errors = [];
+
+  const assignNext = (index) => {
+    if (index >= studentIds.length) {
+      return res.status(200).json({
+        message: `Successfully assigned ${assigned} student(s)${failed > 0 ? ` (${failed} already enrolled)` : ''}`,
+        assigned,
+        failed,
+        errors: errors.length > 0 ? errors : undefined
+      });
+    }
+
+    const studentId = studentIds[index];
+
+    // Check if already enrolled
+    db.get(
+      'SELECT id FROM enrollments WHERE user_id = ? AND course_id = ?',
+      [studentId, courseId],
+      (err, existing) => {
+        if (existing) {
+          failed++;
+          errors.push(`Student ${studentId} is already enrolled`);
+          return assignNext(index + 1);
+        }
+
+        // Enroll student
+        db.run(
+          'INSERT INTO enrollments (user_id, course_id) VALUES (?, ?)',
+          [studentId, courseId],
+          (insertErr) => {
+            if (insertErr) {
+              failed++;
+              errors.push(`Failed to enroll student ${studentId}: ${insertErr.message}`);
+            } else {
+              assigned++;
+            }
+            assignNext(index + 1);
+          }
+        );
+      }
+    );
+  };
+
+  assignNext(0);
+});
+
 // ============= ADMIN ANALYTICS API =============
 app.get('/api/admin/analytics-legacy', (req, res) => {
   const result = {};

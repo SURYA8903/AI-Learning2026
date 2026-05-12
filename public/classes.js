@@ -15,7 +15,8 @@ function renderClasses(classes) {
     const recordedClassesList = document.getElementById('recordedClassesList');
 
     if (liveClassesList) {
-        const live = classes.filter(cl => cl.live_link && new Date(cl.scheduled_at) > new Date());
+        // Show all upcoming classes with scheduled_at in the future (regardless of live_link availability)
+        const live = classes.filter(cl => cl.scheduled_at && new Date(cl.scheduled_at) > new Date());
         if (!live.length) {
             liveClassesList.innerHTML = '<p class="text-gray-500">No upcoming live classes.</p>';
         } else {
@@ -24,7 +25,10 @@ function renderClasses(classes) {
                     <h4 class="font-bold text-gray-900">${cl.title}</h4>
                     <p class="text-sm text-gray-600">${cl.course_title}</p>
                     <p class="text-xs text-blue-600 mt-2">Starts: ${new Date(cl.scheduled_at).toLocaleString()}</p>
-                    <a href="${cl.live_link}" target="_blank" class="inline-block mt-3 px-4 py-1 bg-blue-600 text-white text-xs font-bold rounded hover:bg-blue-700">Join Live</a>
+                    ${cl.live_link 
+                        ? `<a href="${cl.live_link}" target="_blank" class="inline-block mt-3 px-4 py-1 bg-blue-600 text-white text-xs font-bold rounded hover:bg-blue-700">Join Live</a>`
+                        : `<span class="inline-block mt-3 px-4 py-1 bg-gray-300 text-gray-700 text-xs font-bold rounded">Link coming soon</span>`
+                    }
                 </div>
             `).join('');
         }

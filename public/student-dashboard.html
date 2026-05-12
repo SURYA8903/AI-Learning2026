@@ -231,7 +231,10 @@
 
         <!-- ASSIGNMENTS SECTION -->
         <section data-section="assignments" class="section hidden space-y-8">
-          <h2 class="text-3xl font-black text-gray-900 mb-2">Assignments</h2>
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-3xl font-black text-gray-900">Assignments</h2>
+            <button onclick="loadAssignments(currentUser.id)" class="px-4 py-2 bg-purple-100 text-purple-700 font-semibold rounded-lg hover:bg-purple-200 transition" title="Refresh assignments">🔄 Refresh</button>
+          </div>
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div class="space-y-4">
               <h3 class="text-xl font-bold text-gray-800">Pending</h3>
@@ -246,7 +249,10 @@
 
         <!-- CLASSES SECTION -->
         <section data-section="classes" class="section hidden space-y-8">
-          <h2 class="text-3xl font-black text-gray-900 mb-2">Live & Recorded Classes</h2>
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-3xl font-black text-gray-900">Live & Recorded Classes</h2>
+            <button onclick="loadClasses(currentUser.id)" class="px-4 py-2 bg-blue-100 text-blue-700 font-semibold rounded-lg hover:bg-blue-200 transition" title="Refresh classes">🔄 Refresh</button>
+          </div>
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div class="space-y-4">
               <h3 class="text-xl font-bold text-gray-800">Upcoming Live</h3>
@@ -919,7 +925,9 @@
       await Promise.all([
         loadCourses(),
         loadTodos(),
-        loadDashboardStats(currentUser.id)
+        loadDashboardStats(currentUser.id),
+        loadAssignments(currentUser.id),
+        loadClasses(currentUser.id)
       ]);
     });
 
