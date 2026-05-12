@@ -118,7 +118,7 @@
         <div class="nav-item" data-nav="classes" onclick="showSection('classes', event)">Live Classes</div>
         <div class="nav-item" data-nav="todos" onclick="showSection('todos', event)">To-Do List</div>
         <div class="nav-item" data-nav="certificates" onclick="showSection('certificates', event)">Certificates</div>
-        <div class="nav-item" data-nav="achievements" onclick="showSection('achievements', event)">Achievements</div>
+        
         <div class="nav-item" data-nav="settings" onclick="showSection('settings', event)">Settings</div>
       </nav>
       <button onclick="logout()" class="w-full py-2 px-4 bg-red-50 text-red-600 font-bold rounded-lg hover:bg-red-100 transition">
@@ -231,10 +231,7 @@
 
         <!-- ASSIGNMENTS SECTION -->
         <section data-section="assignments" class="section hidden space-y-8">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-3xl font-black text-gray-900">Assignments</h2>
-            <button onclick="loadAssignments(currentUser.id)" class="px-4 py-2 bg-purple-100 text-purple-700 font-semibold rounded-lg hover:bg-purple-200 transition" title="Refresh assignments">🔄 Refresh</button>
-          </div>
+          <h2 class="text-3xl font-black text-gray-900 mb-2">Assignments</h2>
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div class="space-y-4">
               <h3 class="text-xl font-bold text-gray-800">Pending</h3>
@@ -249,10 +246,7 @@
 
         <!-- CLASSES SECTION -->
         <section data-section="classes" class="section hidden space-y-8">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-3xl font-black text-gray-900">Live & Recorded Classes</h2>
-            <button onclick="loadClasses(currentUser.id)" class="px-4 py-2 bg-blue-100 text-blue-700 font-semibold rounded-lg hover:bg-blue-200 transition" title="Refresh classes">🔄 Refresh</button>
-          </div>
+          <h2 class="text-3xl font-black text-gray-900 mb-2">Live & Recorded Classes</h2>
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div class="space-y-4">
               <h3 class="text-xl font-bold text-gray-800">Upcoming Live</h3>
@@ -925,9 +919,7 @@
       await Promise.all([
         loadCourses(),
         loadTodos(),
-        loadDashboardStats(currentUser.id),
-        loadAssignments(currentUser.id),
-        loadClasses(currentUser.id)
+        loadDashboardStats(currentUser.id)
       ]);
     });
 

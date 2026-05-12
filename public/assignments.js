@@ -1,5 +1,3 @@
-const API_URL = 'http://localhost:3000/api';
-
 async function loadAssignments(userId) {
     try {
         const response = await fetch(`${API_URL}/assignments/user/${userId}`);

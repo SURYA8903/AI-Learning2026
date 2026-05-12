@@ -1,5 +1,3 @@
-const API_URL = 'http://localhost:3000/api';
-
 async function loadDashboardStats(userId) {
     try {
         const enrollmentsRes = await fetch(`${API_URL}/enrollments/${userId}`);

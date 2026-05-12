@@ -114,7 +114,7 @@
       <nav class="flex-1 space-y-2">
         <div class="nav-item active" data-nav="dashboard" onclick="showSection('dashboard', event)">Dashboard</div>
         <div class="nav-item" data-nav="courses" onclick="showSection('courses', event)">My Courses</div>
-        <div class="nav-item" data-nav="students" onclick="showSection('students', event)">Manage Students</div>
+        <div class="nav-item" data-nav="students" onclick="showSection('students', event)">Enrolled Students</div>
         <div class="nav-item" data-nav="manage-assignments" onclick="showSection('manage-assignments', event)">Manage Assignments</div>
         <div class="nav-item" data-nav="schedule-classes" onclick="showSection('schedule-classes', event)">Schedule Classes</div>
         <div class="nav-item" data-nav="schedule" onclick="showSection('schedule', event)">Weekly Schedule</div>
@@ -196,34 +196,15 @@
         </section>
 
         <section data-section="students" class="section hidden">
-          <h2 class="text-3xl font-black text-gray-900 mb-6">Manage Students</h2>
-          
-          <!-- Course Selection -->
+          <h2 class="text-3xl font-black text-gray-900 mb-6">Enrolled Students</h2>
           <div class="mb-6">
             <label class="block font-bold text-gray-700 mb-2">Select Course</label>
-            <select id="courseSelect" onchange="onCourseSelectChange()" class="px-4 py-2 border-2 border-gray-300 rounded-lg w-full md:w-80">
+            <select id="courseSelect" onchange="loadEnrolledStudents()" class="px-4 py-2 border-2 border-gray-300 rounded-lg w-full md:w-80">
               <option value="">Choose a course...</option>
             </select>
           </div>
-
-          <!-- Assign Students Section -->
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <div class="panel-card">
-              <h3 class="text-lg font-bold text-gray-900 mb-4">🆓 Available Students</h3>
-              <p class="text-sm text-gray-600 mb-4">Students not yet enrolled in this course</p>
-              <div id="availableStudentsList" class="space-y-3 max-h-80 overflow-y-auto">
-                <p class="text-gray-500">Select a course to see available students.</p>
-              </div>
-              <button onclick="assignSelectedStudents()" class="btn-primary w-full mt-4" id="assignBtn" style="display:none;">Assign Selected Students</button>
-            </div>
-
-            <div class="panel-card">
-              <h3 class="text-lg font-bold text-gray-900 mb-4">✅ Enrolled Students</h3>
-              <p class="text-sm text-gray-600 mb-4">Already enrolled in this course</p>
-              <div id="enrolledStudentsList" class="space-y-3 max-h-80 overflow-y-auto">
-                <p class="text-gray-500">Select a course to view enrolled students.</p>
-              </div>
-            </div>
+          <div id="enrolledStudentsList" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="text-center py-8 text-gray-500 col-span-full">Select a course to view enrolled students.</div>
           </div>
         </section>
 
@@ -558,57 +539,7 @@
     function viewCourseStudents(courseId) {
       document.getElementById('courseSelect').value = String(courseId);
       showSection('students');
-      onCourseSelectChange();
-    }
-
-    async function onCourseSelectChange() {
-      const courseId = document.getElementById('courseSelect').value;
-      if (!courseId) {
-        document.getElementById('enrolledStudentsList').innerHTML = '<p class="text-gray-500">Select a course to view enrolled students.</p>';
-        document.getElementById('availableStudentsList').innerHTML = '<p class="text-gray-500">Select a course to see available students.</p>';
-        document.getElementById('assignBtn').style.display = 'none';
-        return;
-      }
-
-      await Promise.all([
-        loadEnrolledStudents(),
-        loadAvailableStudents()
-      ]);
-    }
-
-    async function loadAvailableStudents() {
-      const courseId = document.getElementById('courseSelect').value;
-      const list = document.getElementById('availableStudentsList');
-
-      if (!courseId) {
-        list.innerHTML = '<p class="text-gray-500">Select a course to see available students.</p>';
-        return;
-      }
-
-      try {
-        const response = await fetch(`${API_URL}/courses/${courseId}/available-students`);
-        const students = response.ok ? await response.json() : [];
-
-        if (!students.length) {
-          list.innerHTML = '<p class="text-gray-500 text-center py-4">All students are already enrolled! ✅</p>';
-          document.getElementById('assignBtn').style.display = 'none';
-          return;
-        }
-
-        document.getElementById('assignBtn').style.display = 'block';
-        list.innerHTML = students.map((student) => `
-          <div class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition">
-            <input type="checkbox" class="student-checkbox w-5 h-5 cursor-pointer" value="${student.id}" data-name="${student.name}">
-            <div class="flex-1 min-w-0">
-              <p class="font-semibold text-gray-900 text-sm">${student.name}</p>
-              <p class="text-xs text-gray-600">${student.email}</p>
-            </div>
-          </div>
-        `).join('');
-      } catch (error) {
-        console.error('Error loading available students:', error);
-        list.innerHTML = '<p class="text-red-500 text-center py-4">Unable to load students.</p>';
-      }
+      loadEnrolledStudents();
     }
 
     async function loadEnrolledStudents() {
@@ -616,7 +547,7 @@
       const list = document.getElementById('enrolledStudentsList');
 
       if (!courseId) {
-        list.innerHTML = '<p class="text-gray-500">Select a course to view enrolled students.</p>';
+        list.innerHTML = '<div class="col-span-full text-center py-8 text-gray-500">Select a course to view enrolled students.</div>';
         return;
       }
 
@@ -625,7 +556,7 @@
         const students = response.ok ? await response.json() : [];
 
         if (!students.length) {
-          list.innerHTML = '<p class="text-gray-500 text-center py-4">No students enrolled yet.</p>';
+          list.innerHTML = '<div class="col-span-full text-center py-8 text-gray-500">No students are enrolled in this course yet.</div>';
           return;
         }
 
@@ -649,45 +580,7 @@
         `).join('');
       } catch (error) {
         console.error('Error loading enrolled students:', error);
-        list.innerHTML = '<p class="text-red-500 text-center py-4">Unable to load students.</p>';
-      }
-    }
-
-    async function assignSelectedStudents() {
-      const courseId = document.getElementById('courseSelect').value;
-      if (!courseId) {
-        alert('Please select a course first.');
-        return;
-      }
-
-      const checkboxes = document.querySelectorAll('.student-checkbox:checked');
-      if (checkboxes.length === 0) {
-        alert('Please select at least one student to assign.');
-        return;
-      }
-
-      const studentIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
-      const studentNames = Array.from(checkboxes).map(cb => cb.dataset.name);
-
-      try {
-        const response = await fetch(`${API_URL}/courses/${courseId}/assign-students`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ studentIds })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-          alert(`✅ ${data.message}\nAssigned: ${studentNames.join(', ')}`);
-          // Refresh the lists
-          await onCourseSelectChange();
-        } else {
-          alert(`❌ ${data.error || 'Failed to assign students'}`);
-        }
-      } catch (error) {
-        console.error('Error assigning students:', error);
-        alert(`Error: ${error.message}`);
+        list.innerHTML = '<div class="col-span-full text-center py-8 text-red-500">Unable to load students right now.</div>';
       }
     }
 
