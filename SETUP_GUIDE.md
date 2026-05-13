@@ -263,7 +263,7 @@ CVV: Any 3 digits
 
 ### Terminal 1: Backend
 ```bash
-cd server
+# From project root
 npm run dev
 ```
 
@@ -277,8 +277,8 @@ Email service initialized successfully
 
 ### Terminal 2: Frontend
 ```bash
-cd client
-npm start
+# From project root
+npm run client:start
 ```
 
 Expected output:

@@ -66,7 +66,7 @@ export async function sendOTPEmail(
         <body>
           <div class="container">
             <div class="header">
-              <div class="logo">Adz4Needz</div>
+              <div class="logo">SkillsUp</div>
               <p style="color: #666; margin-top: 10px;">AI Learning Platform</p>
             </div>
             <div class="content">
@@ -79,7 +79,7 @@ export async function sendOTPEmail(
             </div>
             <div class="footer">
               <p>If you didn't request this code, please ignore this email.</p>
-              <p>&copy; 2026 Adz4Needz. All rights reserved.</p>
+              <p>&copy; 2026 SkillsUp. All rights reserved.</p>
             </div>
           </div>
         </body>
@@ -89,7 +89,7 @@ export async function sendOTPEmail(
     await transporter.sendMail({
       from: process.env.GMAIL_USER || 'surya30.04.05@gmail.com',
       to: email,
-      subject: 'Your OTP for Adz4Needz Account Verification',
+      subject: 'Your OTP for SkillsUp Account Verification',
       html: htmlTemplate,
     });
 

@@ -174,7 +174,7 @@ async function startServer() {
           <body>
             <div class="container">
               <div class="header">
-                <div class="logo">Adz4Needz</div>
+                <div class="logo">SkillsUp</div>
                 <div class="subtitle">AI Learning Platform</div>
               </div>
               <div class="content">
@@ -187,7 +187,7 @@ async function startServer() {
                 <p class="message" style="margin-top: 20px;">If you didn't request this code, please ignore this email.</p>
               </div>
               <div class="footer">
-                <p>&copy; 2026 Adz4Needz. All rights reserved.</p>
+                <p>&copy; 2026 SkillsUp. All rights reserved.</p>
                 <p>This is an automated email. Please do not reply.</p>
               </div>
             </div>
@@ -198,7 +198,7 @@ async function startServer() {
       await transporter.sendMail({
         from: process.env.GMAIL_USER || 'surya30.04.05@gmail.com',
         to: email,
-        subject: '🔐 Your OTP for Adz4Needz Account Verification',
+        subject: '🔐 Your OTP for SkillsUp Account Verification',
         html: htmlTemplate,
       });
 

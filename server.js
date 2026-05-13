@@ -4,8 +4,13 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const crypto = require('crypto');
 const path = require('path');
 const nodemailer = require('nodemailer');
+const Razorpay = require('razorpay');
+const dotenv = require('dotenv');
+
+dotenv.config();
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -14,6 +19,17 @@ const JWT_SECRET = 'your-secret-key-change-in-production';
 // ============= OTP CONFIGURATION =============
 const OTP_EXPIRY_TIME = 10 * 60 * 1000; // 10 minutes
 const OTP_LENGTH = 6;
+const PAYMENT_STATUS = Object.freeze({
+  PENDING: 'pending',
+  SUCCESS: 'success',
+  FAILED: 'failed',
+  CANCELLED: 'cancelled'
+});
+const PAYMENT_GATEWAY = Object.freeze({
+  RAZORPAY: 'razorpay',
+  FREE: 'free'
+});
+const PAYMENT_CURRENCY = process.env.RAZORPAY_CURRENCY || 'INR';
 
 // Temporary registration data store
 const pendingRegistrations = {};
@@ -59,7 +75,7 @@ async function sendOTPEmail(email, otp, name) {
         <body>
           <div class="container">
             <div class="header">
-              <div class="logo">Adz4Needz</div>
+              <div class="logo">SkillsUp</div>
               <p style="color: #666; margin-top: 10px;">AI Learning Platform</p>
             </div>
             <div class="content">
@@ -72,7 +88,7 @@ async function sendOTPEmail(email, otp, name) {
             </div>
             <div class="footer">
               <p>If you didn't request this code, please ignore this email.</p>
-              <p>&copy; 2026 Adz4Needz. All rights reserved.</p>
+              <p>&copy; 2026 SkillsUp. All rights reserved.</p>
             </div>
           </div>
         </body>
@@ -82,7 +98,7 @@ async function sendOTPEmail(email, otp, name) {
     await transporter.sendMail({
       from: process.env.GMAIL_USER || 'surya30.04.05@gmail.com',
       to: email,
-      subject: 'Your OTP for Adz4Needz Account Verification',
+      subject: 'Your OTP for SkillsUp Account Verification',
       html: htmlTemplate,
     });
 
@@ -183,6 +199,157 @@ const allQuery = (sql, params = []) => new Promise((resolve, reject) => {
     else resolve(rows);
   });
 });
+
+let razorpayClient = null;
+
+function getRazorpayClient() {
+  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    return null;
+  }
+
+  if (!razorpayClient) {
+    razorpayClient = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET
+    });
+  }
+
+  return razorpayClient;
+}
+
+function normalizeCurrencyAmount(value) {
+  const amount = Number(value || 0);
+  return Number.isFinite(amount) ? amount : 0;
+}
+
+function buildLocalOrderReference(userId, courseId) {
+  return `skillsup_${userId}_${courseId}_${Date.now()}`;
+}
+
+async function getCourseRecord(courseId) {
+  return getQuery(
+    'SELECT id, title, description, price, duration, level, instructor FROM courses WHERE id = ?',
+    [courseId]
+  );
+}
+
+async function getLatestPaymentRecord(userId, courseId) {
+  return getQuery(
+    `SELECT *
+     FROM payments
+     WHERE user_id = ? AND course_id = ?
+     ORDER BY id DESC
+     LIMIT 1`,
+    [userId, courseId]
+  );
+}
+
+async function getSuccessfulPaymentRecord(userId, courseId) {
+  return getQuery(
+    `SELECT *
+     FROM payments
+     WHERE user_id = ? AND course_id = ? AND payment_status = ?
+     ORDER BY COALESCE(paid_at, created_at) DESC, id DESC
+     LIMIT 1`,
+    [userId, courseId, PAYMENT_STATUS.SUCCESS]
+  );
+}
+
+async function getEnrollmentRecord(userId, courseId) {
+  return getQuery(
+    `SELECT *
+     FROM enrollments
+     WHERE user_id = ? AND course_id = ?
+     ORDER BY id DESC
+     LIMIT 1`,
+    [userId, courseId]
+  );
+}
+
+async function createEnrollmentRecord(userId, courseId) {
+  const existingEnrollment = await getEnrollmentRecord(userId, courseId);
+  if (existingEnrollment) {
+    return existingEnrollment;
+  }
+
+  const insertResult = await runQuery(
+    'INSERT INTO enrollments (user_id, course_id) VALUES (?, ?)',
+    [userId, courseId]
+  );
+
+  return getQuery('SELECT * FROM enrollments WHERE id = ?', [insertResult.lastID]);
+}
+
+async function getValidatedCourseAccess(userId, courseId) {
+  const course = await getCourseRecord(courseId);
+  if (!course) {
+    return { course: null, enrollment: null, payment: null, hasAccess: false };
+  }
+
+  const enrollment = await getEnrollmentRecord(userId, courseId);
+  if (!enrollment) {
+    return { course, enrollment: null, payment: null, hasAccess: false };
+  }
+
+  if (normalizeCurrencyAmount(course.price) <= 0) {
+    const payment = await getLatestPaymentRecord(userId, courseId);
+    return {
+      course,
+      enrollment,
+      payment,
+      hasAccess: true
+    };
+  }
+
+  const payment = await getSuccessfulPaymentRecord(userId, courseId);
+  return {
+    course,
+    enrollment: payment ? enrollment : null,
+    payment,
+    hasAccess: Boolean(payment)
+  };
+}
+
+async function markPaymentRecordStatus(paymentRecordId, status, reason = null) {
+  await runQuery(
+    `UPDATE payments
+     SET payment_status = ?, failure_reason = ?, updated_at = CURRENT_TIMESTAMP
+     WHERE id = ? AND payment_status = ?`,
+    [status, reason, paymentRecordId, PAYMENT_STATUS.PENDING]
+  );
+}
+
+async function finalizeEnrollmentPayment(paymentRecordId, paymentMeta) {
+  const paymentRecord = await getQuery('SELECT * FROM payments WHERE id = ?', [paymentRecordId]);
+  if (!paymentRecord) {
+    throw new Error('Payment record not found.');
+  }
+
+  await runQuery('BEGIN TRANSACTION');
+
+  try {
+    await runQuery(
+      `UPDATE payments
+       SET payment_status = ?, gateway_payment_id = ?, gateway_signature = ?, failure_reason = NULL,
+           paid_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [
+        PAYMENT_STATUS.SUCCESS,
+        paymentMeta.gatewayPaymentId,
+        paymentMeta.gatewaySignature,
+        paymentRecordId
+      ]
+    );
+
+    await createEnrollmentRecord(paymentRecord.user_id, paymentRecord.course_id);
+    await runQuery('COMMIT');
+
+    return getEnrollmentRecord(paymentRecord.user_id, paymentRecord.course_id);
+  } catch (error) {
+    await runQuery('ROLLBACK');
+    throw error;
+  }
+}
 
 const COURSE_SELECT_SQL = `
   SELECT
@@ -396,6 +563,27 @@ const initializeDatabase = () => {
         progress INTEGER DEFAULT 0,
         status TEXT DEFAULT 'active',
         enrolled_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(user_id) REFERENCES users(id),
+        FOREIGN KEY(course_id) REFERENCES courses(id)
+      )
+    `);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS payments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        course_id INTEGER NOT NULL,
+        order_id TEXT UNIQUE,
+        payment_gateway TEXT NOT NULL DEFAULT 'razorpay',
+        payment_status TEXT NOT NULL DEFAULT 'pending' CHECK(payment_status IN ('pending', 'success', 'failed', 'cancelled')),
+        amount REAL NOT NULL DEFAULT 0,
+        currency TEXT NOT NULL DEFAULT 'INR',
+        gateway_payment_id TEXT,
+        gateway_signature TEXT,
+        failure_reason TEXT,
+        paid_at DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(user_id) REFERENCES users(id),
         FOREIGN KEY(course_id) REFERENCES courses(id)
       )
@@ -884,7 +1072,7 @@ app.post('/api/forgot-password', async (req, res) => {
                   <body>
                     <div class="container">
                       <div class="header">
-                        <div class="logo">Adz4Needz</div>
+                        <div class="logo">SkillsUp</div>
                         <p style="color: #666; margin-top: 10px;">AI Learning Platform</p>
                       </div>
                       <div class="content">
@@ -897,7 +1085,7 @@ app.post('/api/forgot-password', async (req, res) => {
                         <p class="warning">⚠️ If you didn't request this, please ignore this email and your password will remain unchanged.</p>
                       </div>
                       <div class="footer">
-                        <p>&copy; 2026 Adz4Needz. All rights reserved.</p>
+                        <p>&copy; 2026 SkillsUp. All rights reserved.</p>
                       </div>
                     </div>
                   </body>
@@ -907,7 +1095,7 @@ app.post('/api/forgot-password', async (req, res) => {
               await transporter.sendMail({
                 from: process.env.GMAIL_USER || 'surya30.04.05@gmail.com',
                 to: email,
-                subject: 'Password Reset Request - Adz4Needz',
+                subject: 'Password Reset Request - SkillsUp',
                 html: htmlTemplate,
               });
 
@@ -1133,7 +1321,24 @@ app.post('/api/recommend', (req, res) => {
         return continueWithEnrollments([]);
       }
 
-      db.all('SELECT course_id FROM enrollments WHERE user_id = ?', [user_id], (enrollmentErr, enrollments) => {
+      db.all(
+        `SELECT e.course_id
+         FROM enrollments e
+         JOIN courses c ON c.id = e.course_id
+         LEFT JOIN payments p
+           ON p.id = (
+             SELECT p2.id
+             FROM payments p2
+             WHERE p2.user_id = e.user_id
+               AND p2.course_id = e.course_id
+               AND p2.payment_status = 'success'
+             ORDER BY COALESCE(p2.paid_at, p2.created_at) DESC, p2.id DESC
+             LIMIT 1
+           )
+         WHERE e.user_id = ?
+           AND (COALESCE(c.price, 0) <= 0 OR p.id IS NOT NULL)`,
+        [user_id],
+        (enrollmentErr, enrollments) => {
         if (enrollmentErr) {
           return res.status(500).json({ success: false, error: 'Failed to load enrollment context.' });
         }
@@ -1215,35 +1420,299 @@ app.delete('/api/courses/:id', (req, res) => {
   });
 });
 
+app.get('/api/course-access/:userId/:courseId', async (req, res) => {
+  const { userId, courseId } = req.params;
+
+  try {
+    const access = await getValidatedCourseAccess(userId, courseId);
+    if (!access.course) {
+      return res.status(404).json({ error: 'âŒ Course not found!' });
+    }
+
+    const latestPayment = access.payment || await getLatestPaymentRecord(userId, courseId);
+    const paymentRequired = normalizeCurrencyAmount(access.course.price) > 0;
+
+    res.json({
+      hasAccess: access.hasAccess,
+      paymentRequired,
+      paymentStatus: latestPayment
+        ? latestPayment.payment_status
+        : paymentRequired
+          ? 'not_started'
+          : 'not_required',
+      payment: latestPayment
+        ? {
+            id: latestPayment.id,
+            orderId: latestPayment.order_id,
+            amount: normalizeCurrencyAmount(latestPayment.amount),
+            currency: latestPayment.currency,
+            paidAt: latestPayment.paid_at,
+            failureReason: latestPayment.failure_reason
+          }
+        : null
+    });
+  } catch (error) {
+    console.error('Failed to fetch course access state:', error);
+    res.status(500).json({ error: 'âŒ Failed to fetch course access status!' });
+  }
+});
+
+// ============= PAYMENT APIs =============
+
+app.post('/api/payments/create-order', async (req, res) => {
+  const { user_id, course_id } = req.body;
+
+  if (!user_id || !course_id) {
+    return res.status(400).json({ error: 'âŒ User ID and Course ID are required!' });
+  }
+
+  try {
+    const user = await getQuery(
+      'SELECT id, name, email, role FROM users WHERE id = ?',
+      [user_id]
+    );
+    if (!user || user.role !== 'student') {
+      return res.status(404).json({ error: 'âŒ Student not found!' });
+    }
+
+    const course = await getCourseRecord(course_id);
+    if (!course) {
+      return res.status(404).json({ error: 'âŒ Course not found!' });
+    }
+
+    const validatedAccess = await getValidatedCourseAccess(user_id, course_id);
+    if (validatedAccess.hasAccess) {
+      return res.status(200).json({
+        enrolled: true,
+        requiresPayment: false,
+        message: 'âœ… You already have access to this course.'
+      });
+    }
+
+    const amount = normalizeCurrencyAmount(course.price);
+
+    if (amount <= 0) {
+      const orderReference = buildLocalOrderReference(user_id, course_id);
+      const freePaymentInsert = await runQuery(
+        `INSERT INTO payments (
+          user_id, course_id, order_id, payment_gateway, payment_status, amount, currency, paid_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+        [
+          user_id,
+          course_id,
+          orderReference,
+          PAYMENT_GATEWAY.FREE,
+          PAYMENT_STATUS.SUCCESS,
+          0,
+          PAYMENT_CURRENCY
+        ]
+      );
+
+      await createEnrollmentRecord(user_id, course_id);
+
+      return res.status(201).json({
+        enrolled: true,
+        requiresPayment: false,
+        paymentRecordId: freePaymentInsert.lastID,
+        message: 'âœ… Free course enrolled successfully.'
+      });
+    }
+
+    const razorpay = getRazorpayClient();
+    if (!razorpay) {
+      return res.status(503).json({
+        error: 'âŒ Payment gateway is not configured. Add Razorpay keys before enrolling in paid courses.'
+      });
+    }
+
+    const razorpayOrder = await razorpay.orders.create({
+      amount: Math.round(amount * 100),
+      currency: PAYMENT_CURRENCY,
+      receipt: buildLocalOrderReference(user_id, course_id),
+      notes: {
+        userId: String(user_id),
+        courseId: String(course_id),
+        courseTitle: course.title
+      }
+    });
+
+    const paymentInsert = await runQuery(
+      `INSERT INTO payments (
+        user_id, course_id, order_id, payment_gateway, payment_status, amount, currency, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      [
+        user_id,
+        course_id,
+        razorpayOrder.id,
+        PAYMENT_GATEWAY.RAZORPAY,
+        PAYMENT_STATUS.PENDING,
+        amount,
+        PAYMENT_CURRENCY
+      ]
+    );
+
+    res.status(201).json({
+      enrolled: false,
+      requiresPayment: true,
+      message: 'Proceed to secure checkout to finish enrollment.',
+      payment: {
+        paymentRecordId: paymentInsert.lastID,
+        orderId: razorpayOrder.id,
+        amount,
+        amountPaise: razorpayOrder.amount,
+        currency: razorpayOrder.currency,
+        key: process.env.RAZORPAY_KEY_ID,
+        courseTitle: course.title,
+        studentName: user.name,
+        studentEmail: user.email
+      }
+    });
+  } catch (error) {
+    console.error('Failed to create payment order:', error);
+    res.status(500).json({ error: 'âŒ Failed to start the payment process!' });
+  }
+});
+
+app.post('/api/payments/verify', async (req, res) => {
+  const {
+    paymentRecordId,
+    user_id,
+    course_id,
+    razorpay_payment_id,
+    razorpay_order_id,
+    razorpay_signature
+  } = req.body;
+
+  if (!paymentRecordId || !user_id || !course_id || !razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
+    return res.status(400).json({ error: 'âŒ Payment verification data is incomplete!' });
+  }
+
+  try {
+    const paymentRecord = await getQuery(
+      'SELECT * FROM payments WHERE id = ? AND user_id = ? AND course_id = ?',
+      [paymentRecordId, user_id, course_id]
+    );
+
+    if (!paymentRecord) {
+      return res.status(404).json({ error: 'âŒ Payment record not found!' });
+    }
+
+    if (paymentRecord.payment_status === PAYMENT_STATUS.SUCCESS) {
+      await createEnrollmentRecord(user_id, course_id);
+      return res.json({
+        message: 'âœ… Payment already verified. Course access is active.',
+        paymentStatus: PAYMENT_STATUS.SUCCESS
+      });
+    }
+
+    if (paymentRecord.order_id !== razorpay_order_id) {
+      await markPaymentRecordStatus(paymentRecordId, PAYMENT_STATUS.FAILED, 'Order mismatch during verification');
+      return res.status(400).json({ error: 'âŒ Payment order mismatch detected.' });
+    }
+
+    const expectedSignature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || '')
+      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+      .digest('hex');
+
+    if (!expectedSignature || expectedSignature !== razorpay_signature) {
+      await markPaymentRecordStatus(paymentRecordId, PAYMENT_STATUS.FAILED, 'Invalid payment signature');
+      return res.status(400).json({ error: 'âŒ Payment verification failed. Enrollment was not created.' });
+    }
+
+    await finalizeEnrollmentPayment(paymentRecordId, {
+      gatewayPaymentId: razorpay_payment_id,
+      gatewaySignature: razorpay_signature
+    });
+
+    res.json({
+      message: 'âœ… Payment verified and enrollment activated successfully!',
+      paymentStatus: PAYMENT_STATUS.SUCCESS
+    });
+  } catch (error) {
+    console.error('Failed to verify payment:', error);
+    res.status(500).json({ error: 'âŒ Failed to verify payment!' });
+  }
+});
+
+app.post('/api/payments/failure', async (req, res) => {
+  const { paymentRecordId, reason, status } = req.body;
+
+  if (!paymentRecordId) {
+    return res.status(400).json({ error: 'âŒ Payment record ID is required!' });
+  }
+
+  const targetStatus = status === PAYMENT_STATUS.CANCELLED
+    ? PAYMENT_STATUS.CANCELLED
+    : PAYMENT_STATUS.FAILED;
+
+  try {
+    await markPaymentRecordStatus(paymentRecordId, targetStatus, reason || null);
+    res.json({
+      message: targetStatus === PAYMENT_STATUS.CANCELLED
+        ? 'Payment cancelled. Enrollment was not created.'
+        : 'Payment marked as failed. Enrollment was not created.'
+    });
+  } catch (error) {
+    console.error('Failed to update payment status:', error);
+    res.status(500).json({ error: 'âŒ Failed to update payment status.' });
+  }
+});
+
 // ============= ENROLLMENT APIs =============
 
 // Enroll in Course
-app.post('/api/enrollments', (req, res) => {
+app.post('/api/enrollments', async (req, res) => {
   const { user_id, course_id } = req.body;
 
   if (!user_id || !course_id) {
     return res.status(400).json({ error: '❌ User ID and Course ID are required!' });
   }
 
-  db.get(
-    'SELECT id FROM enrollments WHERE user_id = ? AND course_id = ?',
-    [user_id, course_id],
-    (lookupErr, existingEnrollment) => {
-      if (lookupErr) return res.status(500).json({ error: 'Enrollment failed!' });
-      if (existingEnrollment) {
-        return res.status(400).json({ error: 'Student is already enrolled in this course!' });
-      }
-
-      return db.run(
-        'INSERT INTO enrollments (user_id, course_id) VALUES (?, ?)',
-        [user_id, course_id],
-        function(err) {
-          if (err) return res.status(500).json({ error: 'Enrollment failed!' });
-          res.status(201).json({ message: 'Enrolled successfully!' });
-        }
-      );
+  try {
+    const course = await getCourseRecord(course_id);
+    if (!course) {
+      return res.status(404).json({ error: 'âŒ Course not found!' });
     }
-  );
+
+    const validatedAccess = await getValidatedCourseAccess(user_id, course_id);
+    if (validatedAccess.hasAccess) {
+      return res.status(200).json({ message: 'âœ… You already have access to this course.' });
+    }
+
+    if (normalizeCurrencyAmount(course.price) > 0) {
+      const latestPayment = await getLatestPaymentRecord(user_id, course_id);
+      return res.status(402).json({
+        error: 'âŒ Payment verification is required before enrollment.',
+        paymentStatus: latestPayment ? latestPayment.payment_status : 'not_started'
+      });
+    }
+
+    const paymentInsert = await runQuery(
+      `INSERT INTO payments (
+        user_id, course_id, order_id, payment_gateway, payment_status, amount, currency, paid_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      [
+        user_id,
+        course_id,
+        buildLocalOrderReference(user_id, course_id),
+        PAYMENT_GATEWAY.FREE,
+        PAYMENT_STATUS.SUCCESS,
+        0,
+        PAYMENT_CURRENCY
+      ]
+    );
+
+    await createEnrollmentRecord(user_id, course_id);
+
+    res.status(201).json({
+      message: 'âœ… Enrolled successfully!',
+      paymentRecordId: paymentInsert.lastID
+    });
+  } catch (error) {
+    console.error('Enrollment failed:', error);
+    res.status(500).json({ error: 'Enrollment failed!' });
+  }
 });
 
 // Get User Enrollments
@@ -1251,10 +1720,32 @@ app.get('/api/enrollments/:userId', (req, res) => {
   const { userId } = req.params;
 
   db.all(
-    `SELECT e.*, c.title, c.description, c.price, c.duration, c.level, c.instructor 
-     FROM enrollments e 
-     JOIN courses c ON e.course_id = c.id 
-     WHERE e.user_id = ?`,
+    `SELECT
+       e.*,
+       c.title,
+       c.description,
+       c.price,
+       c.duration,
+       c.level,
+       c.instructor,
+       p.payment_status,
+       p.amount AS paid_amount,
+       p.paid_at
+     FROM enrollments e
+     JOIN courses c ON e.course_id = c.id
+     LEFT JOIN payments p
+       ON p.id = (
+         SELECT p2.id
+         FROM payments p2
+         WHERE p2.user_id = e.user_id
+           AND p2.course_id = e.course_id
+           AND p2.payment_status = 'success'
+         ORDER BY COALESCE(p2.paid_at, p2.created_at) DESC, p2.id DESC
+         LIMIT 1
+       )
+     WHERE e.user_id = ?
+       AND (COALESCE(c.price, 0) <= 0 OR p.id IS NOT NULL)
+     ORDER BY e.enrolled_at DESC, e.id DESC`,
     [userId],
     (err, enrollments) => {
       if (err) return res.status(500).json({ error: '❌ Failed to fetch enrollments!' });
@@ -1522,6 +2013,15 @@ app.get('/api/assignments/user/:userId', (req, res) => {
     JOIN courses c ON c.id = a.course_id
     LEFT JOIN submissions s ON s.assignment_id = a.id AND s.user_id = e.user_id
     WHERE e.user_id = ?
+      AND (
+        COALESCE(c.price, 0) <= 0 OR EXISTS (
+          SELECT 1
+          FROM payments p
+          WHERE p.user_id = e.user_id
+            AND p.course_id = e.course_id
+            AND p.payment_status = 'success'
+        )
+      )
   `;
   db.all(sql, [userId], (err, rows) => {
     if (err) return res.status(500).json({ error: 'Failed to fetch assignments' });
@@ -1534,18 +2034,39 @@ app.get('/api/assignments/user/:userId', (req, res) => {
   });
 });
 
-app.post('/api/submissions', (req, res) => {
+app.post('/api/submissions', async (req, res) => {
   const { assignment_id, user_id, content } = req.body;
   if (!assignment_id || !user_id) return res.status(400).json({ error: 'Assignment ID and User ID are required' });
 
-  db.run(
-    'INSERT INTO submissions (assignment_id, user_id, content) VALUES (?, ?, ?)',
-    [assignment_id, user_id, content],
-    function(err) {
-      if (err) return res.status(500).json({ error: 'Failed to submit assignment' });
-      res.status(201).json({ message: 'Assignment submitted', id: this.lastID });
+  try {
+    const assignment = await getQuery(
+      `SELECT a.id, a.course_id
+       FROM assignments a
+       WHERE a.id = ?`,
+      [assignment_id]
+    );
+
+    if (!assignment) {
+      return res.status(404).json({ error: 'Assignment not found' });
     }
-  );
+
+    const access = await getValidatedCourseAccess(user_id, assignment.course_id);
+    if (!access.hasAccess) {
+      return res.status(403).json({ error: 'Verified enrollment is required before submitting this assignment' });
+    }
+
+    db.run(
+      'INSERT INTO submissions (assignment_id, user_id, content) VALUES (?, ?, ?)',
+      [assignment_id, user_id, content],
+      function(err) {
+        if (err) return res.status(500).json({ error: 'Failed to submit assignment' });
+        res.status(201).json({ message: 'Assignment submitted', id: this.lastID });
+      }
+    );
+  } catch (error) {
+    console.error('Failed to submit assignment:', error);
+    res.status(500).json({ error: 'Failed to submit assignment' });
+  }
 });
 
 app.get('/api/submissions/:userId', (req, res) => {
@@ -1580,6 +2101,15 @@ app.get('/api/classes/:userId', (req, res) => {
     JOIN enrollments e ON e.course_id = cl.course_id
     JOIN courses co ON co.id = cl.course_id
     WHERE e.user_id = ?
+      AND (
+        COALESCE(co.price, 0) <= 0 OR EXISTS (
+          SELECT 1
+          FROM payments p
+          WHERE p.user_id = e.user_id
+            AND p.course_id = e.course_id
+            AND p.payment_status = 'success'
+        )
+      )
     ORDER BY cl.scheduled_at ASC
   `;
   db.all(sql, [userId], (err, rows) => {

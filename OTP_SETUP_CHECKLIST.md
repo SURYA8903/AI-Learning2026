@@ -82,7 +82,7 @@ See `OTP_SETUP_GUIDE.md` for:
 | **Attempt Limit** | 5 attempts |
 | **Resend Option** | Yes ✅ |
 | **Email Type** | HTML formatted |
-| **Branding** | Adz4Needz logo & colors |
+| **Branding** | SkillsUp logo & colors |
 | **Fallback** | Manual resend button |
 
 ---

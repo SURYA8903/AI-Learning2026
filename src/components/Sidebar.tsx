@@ -96,10 +96,10 @@ export default function Sidebar({ role }: SidebarProps) {
     <aside className="w-64 bg-[#F8FAFC] border-r border-slate-200 h-screen fixed left-0 top-0 hidden lg:flex flex-col shadow-sm">
       <div className="p-8 pb-4">
         <div className="flex flex-col gap-0.5 mb-10">
-          <span className="text-xl font-black text-indigo-600 tracking-tighter">ADZ4NEEDZ</span>
+          <span className="text-xl font-black text-indigo-600 tracking-tighter">SkillsUp</span>
           <div className="flex flex-col">
              <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest leading-none">Learning Portal</span>
-             <span className="text-[8px] font-bold text-indigo-500 uppercase tracking-tight mt-0.5">ADZ4NEEDZ AI</span>
+             <span className="text-[8px] font-bold text-indigo-500 uppercase tracking-tight mt-0.5">SkillsUp AI</span>
           </div>
         </div>
 

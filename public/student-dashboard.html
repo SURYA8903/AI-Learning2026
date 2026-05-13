@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Student Dashboard - Adz4Needz</title>
+  <title>Student Dashboard - SkillsUp</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -107,7 +108,7 @@
     <!-- SIDEBAR -->
     <aside class="hidden lg:flex lg:w-64 bg-white border-r-2 border-gray-200 flex-col p-6">
       <div class="mb-8">
-        <span class="text-2xl font-black aqua-gradient-text block">Adz4Needz</span>
+        <span class="text-2xl font-black aqua-gradient-text block">SkillsUp</span>
         <p class="text-sm text-gray-500 mt-1">Learning Platform</p>
       </div>
       <nav class="flex-1 space-y-2">
@@ -376,10 +377,11 @@
         <h3 id="modalTitle" class="text-2xl font-black text-gray-900"></h3>
         <button onclick="closeModal()" class="text-2xl text-gray-400 hover:text-gray-600">&times;</button>
       </div>
+      <div id="courseModalStatus" class="hidden rounded-xl px-4 py-3 text-sm font-semibold mb-4"></div>
       <div id="modalContent" class="space-y-4 mb-6"></div>
       <div class="flex gap-3">
         <button onclick="closeModal()" class="flex-1 py-2 px-4 bg-gray-100 text-gray-900 font-bold rounded-lg hover:bg-gray-200">Close</button>
-        <button id="enrollBtn" onclick="enrollCourse()" class="flex-1 btn-primary">Enroll</button>
+        <button id="enrollBtn" onclick="enrollCourse()" class="flex-1 btn-primary">Enroll Now</button>
       </div>
     </div>
   </div>
@@ -404,7 +406,9 @@
 
   <script>
     const API_URL = 'http://localhost:3000/api';
-    let currentCourse = null;
+    let currentCourseId = null;
+    let currentCourseDetails = null;
+    let currentPaymentSession = null;
     let currentAssignment = null;
     let currentUser = null;
     let allCourses = [];
@@ -417,6 +421,117 @@
       Intermediate: 'bg-yellow-100 text-yellow-700',
       Advanced: 'bg-red-100 text-red-700'
     };
+
+    const courseModalStatusClasses = {
+      info: 'bg-blue-50 text-blue-700 border border-blue-100',
+      success: 'bg-green-50 text-green-700 border border-green-100',
+      warning: 'bg-amber-50 text-amber-700 border border-amber-100',
+      error: 'bg-red-50 text-red-700 border border-red-100'
+    };
+
+    function setCourseModalStatus(message, tone = 'info') {
+      const banner = document.getElementById('courseModalStatus');
+      if (!banner) return;
+
+      banner.textContent = message;
+      banner.className = `rounded-xl px-4 py-3 text-sm font-semibold mb-4 ${courseModalStatusClasses[tone] || courseModalStatusClasses.info}`;
+      banner.classList.remove('hidden');
+    }
+
+    function clearCourseModalStatus() {
+      const banner = document.getElementById('courseModalStatus');
+      if (!banner) return;
+
+      banner.textContent = '';
+      banner.className = 'hidden rounded-xl px-4 py-3 text-sm font-semibold mb-4';
+    }
+
+    function setEnrollButtonState(label, disabled = false) {
+      const button = document.getElementById('enrollBtn');
+      if (!button) return;
+
+      button.textContent = label;
+      button.disabled = disabled;
+      button.style.opacity = disabled ? '0.6' : '1';
+      button.style.cursor = disabled ? 'not-allowed' : 'pointer';
+    }
+
+    function formatPaymentStatus(status) {
+      switch (status) {
+        case 'success':
+          return 'Payment verified. Course access is active.';
+        case 'pending':
+          return 'Payment is pending. Complete the checkout to unlock the course.';
+        case 'failed':
+          return 'Last payment failed. You can retry safely.';
+        case 'cancelled':
+          return 'Checkout was cancelled. No enrollment was created.';
+        case 'not_required':
+          return 'This course is free. No payment is required.';
+        default:
+          return 'Payment has not been started yet.';
+      }
+    }
+
+    async function fetchCourseAccessState(courseId) {
+      const response = await fetch(`${API_URL}/course-access/${currentUser.id}/${courseId}`);
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || 'Unable to load course access state.');
+      }
+
+      return response.json();
+    }
+
+    function renderCourseModal(course, accessState) {
+      const paymentRequired = Number(course.price || 0) > 0;
+      const paymentStatus = accessState?.paymentStatus || (paymentRequired ? 'not_started' : 'not_required');
+      const paymentNote = accessState?.payment?.failureReason
+        ? `<p class="text-xs text-gray-500 mt-2">${accessState.payment.failureReason}</p>`
+        : '';
+
+      document.getElementById('modalContent').innerHTML = `
+        <div class="space-y-3 text-gray-700">
+          <p><strong>Instructor:</strong> ${course.instructor}</p>
+          <p><strong>Duration:</strong> ${course.duration}</p>
+          <p><strong>Level:</strong> ${course.level}</p>
+          <p><strong>Price:</strong> Rs.${Number(course.price || 0).toLocaleString()}</p>
+          <p><strong>Enrolled Students:</strong> ${course.students || 0}</p>
+          <p class="pt-2">${course.description}</p>
+          <div class="rounded-xl ${paymentRequired ? 'bg-indigo-50 border border-indigo-100' : 'bg-emerald-50 border border-emerald-100'} p-4">
+            <p class="text-sm font-bold ${paymentRequired ? 'text-indigo-700' : 'text-emerald-700'}">
+              ${paymentRequired ? 'Secure Checkout Required' : 'Free Enrollment'}
+            </p>
+            <p class="text-sm mt-1 ${paymentRequired ? 'text-indigo-900' : 'text-emerald-900'}">
+              ${formatPaymentStatus(paymentStatus)}
+            </p>
+            ${paymentNote}
+          </div>
+        </div>
+      `;
+
+      if (accessState?.hasAccess) {
+        setEnrollButtonState('Already Enrolled', true);
+        return;
+      }
+
+      if (!paymentRequired) {
+        setEnrollButtonState('Enroll Free', false);
+        return;
+      }
+
+      if (paymentStatus === 'pending') {
+        setEnrollButtonState('Complete Payment', false);
+        return;
+      }
+
+      if (paymentStatus === 'failed' || paymentStatus === 'cancelled') {
+        setEnrollButtonState('Retry Payment', false);
+        return;
+      }
+
+      setEnrollButtonState('Enroll Now', false);
+    }
 
     function showSection(sectionName, event) {
       document.querySelectorAll('[data-section]').forEach((section) => {
@@ -720,64 +835,200 @@
       }
     }
 
-    function showCourseDetails(courseId) {
-      currentCourse = courseId;
+    async function showCourseDetails(courseId) {
+      currentCourseId = courseId;
+      currentCourseDetails = null;
+      currentPaymentSession = null;
+      clearCourseModalStatus();
+      setEnrollButtonState('Loading...', true);
 
-      fetch(`${API_URL}/courses/${courseId}`)
-        .then((response) => response.json())
-        .then((course) => {
-          document.getElementById('modalTitle').textContent = course.title;
-          document.getElementById('modalContent').innerHTML = `
-            <div class="space-y-2 text-gray-700">
-              <p><strong>Instructor:</strong> ${course.instructor}</p>
-              <p><strong>Duration:</strong> ${course.duration}</p>
-              <p><strong>Level:</strong> ${course.level}</p>
-              <p><strong>Price:</strong> Rs.${Number(course.price || 0).toLocaleString()}</p>
-              <p><strong>Enrolled Students:</strong> ${course.students || 0}</p>
-              <p class="pt-3">${course.description}</p>
-            </div>
-          `;
+      try {
+        const [courseResponse, accessState] = await Promise.all([
+          fetch(`${API_URL}/courses/${courseId}`),
+          fetchCourseAccessState(courseId)
+        ]);
 
-          const enrollBtn = document.getElementById('enrollBtn');
-          if (enrolledIds.includes(courseId)) {
-            enrollBtn.textContent = 'Already Enrolled';
-            enrollBtn.disabled = true;
-            enrollBtn.style.opacity = '0.6';
-          } else {
-            enrollBtn.textContent = 'Enroll';
-            enrollBtn.disabled = false;
-            enrollBtn.style.opacity = '1';
-          }
+        const course = await courseResponse.json();
+        if (!courseResponse.ok) {
+          throw new Error(course.error || 'Unable to load course details.');
+        }
 
-          document.getElementById('courseModal').classList.remove('hidden');
-        })
-        .catch((error) => {
-          alert(`Unable to load course details: ${error.message}`);
-        });
+        currentCourseDetails = course;
+        document.getElementById('modalTitle').textContent = course.title;
+        renderCourseModal(course, accessState);
+        document.getElementById('courseModal').classList.remove('hidden');
+      } catch (error) {
+        alert(`Unable to load course details: ${error.message}`);
+      }
     }
 
     function closeModal() {
       document.getElementById('courseModal').classList.add('hidden');
+      currentCourseId = null;
+      currentCourseDetails = null;
+      currentPaymentSession = null;
+      clearCourseModalStatus();
     }
 
-    async function enrollCourse() {
+    async function refreshCourseAccessState() {
+      if (!currentCourseId || !currentCourseDetails) {
+        return;
+      }
+
+      const accessState = await fetchCourseAccessState(currentCourseId);
+      renderCourseModal(currentCourseDetails, accessState);
+    }
+
+    async function handlePaymentStateChange(reason, status = 'failed') {
+      if (!currentPaymentSession || currentPaymentSession.handled) {
+        return;
+      }
+
+      currentPaymentSession.handled = true;
+
       try {
-        const response = await fetch(`${API_URL}/enrollments`, {
+        await fetch(`${API_URL}/payments/failure`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: currentUser.id, course_id: currentCourse })
+          body: JSON.stringify({
+            paymentRecordId: currentPaymentSession.paymentRecordId,
+            reason,
+            status
+          })
+        });
+      } catch (error) {
+        console.error('Unable to persist payment failure state:', error);
+      }
+
+      currentPaymentSession = null;
+      setCourseModalStatus(
+        status === 'cancelled'
+          ? 'Payment cancelled. Enrollment was not created.'
+          : reason || 'Payment failed. Enrollment was not created.',
+        status === 'cancelled' ? 'warning' : 'error'
+      );
+
+      await refreshCourseAccessState();
+    }
+
+    async function verifyCoursePayment(paymentResponse) {
+      if (!currentPaymentSession) {
+        return;
+      }
+
+      currentPaymentSession.handled = true;
+      setCourseModalStatus('Verifying payment and activating your course access...', 'info');
+      setEnrollButtonState('Verifying...', true);
+
+      try {
+        const response = await fetch(`${API_URL}/payments/verify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            paymentRecordId: currentPaymentSession.paymentRecordId,
+            user_id: currentUser.id,
+            course_id: currentCourseId,
+            razorpay_payment_id: paymentResponse.razorpay_payment_id,
+            razorpay_order_id: paymentResponse.razorpay_order_id,
+            razorpay_signature: paymentResponse.razorpay_signature
+          })
         });
 
         const data = await response.json();
         if (!response.ok) {
-          alert(data.error || 'Unable to enroll right now.');
+          throw new Error(data.error || 'Payment verification failed.');
+        }
+
+        setCourseModalStatus(data.message || 'Payment verified successfully!', 'success');
+        await Promise.all([
+          loadCourses(),
+          loadDashboardStats(currentUser.id)
+        ]);
+        await refreshCourseAccessState();
+      } catch (error) {
+        setCourseModalStatus(error.message, 'error');
+        await refreshCourseAccessState();
+      } finally {
+        currentPaymentSession = null;
+      }
+    }
+
+    async function enrollCourse() {
+      if (!currentCourseDetails || !currentCourseId) {
+        return;
+      }
+
+      clearCourseModalStatus();
+      setEnrollButtonState('Preparing...', true);
+
+      try {
+        const response = await fetch(`${API_URL}/payments/create-order`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: currentUser.id, course_id: currentCourseId })
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'Unable to start enrollment right now.');
+        }
+
+        if (data.enrolled && !data.requiresPayment) {
+          setCourseModalStatus(data.message || 'Enrollment completed successfully!', 'success');
+          await Promise.all([
+            loadCourses(),
+            loadDashboardStats(currentUser.id)
+          ]);
+          await refreshCourseAccessState();
           return;
         }
 
-        closeModal();
-        await loadCourses();
+        if (!window.Razorpay || !data.payment) {
+          throw new Error('Secure checkout is unavailable right now. Please refresh and try again.');
+        }
+
+        currentPaymentSession = {
+          paymentRecordId: data.payment.paymentRecordId,
+          orderId: data.payment.orderId,
+          handled: false
+        };
+
+        setCourseModalStatus('Complete your payment in the secure checkout window to unlock this course.', 'info');
+        setEnrollButtonState('Waiting for Payment...', true);
+
+        const razorpay = new window.Razorpay({
+          key: data.payment.key,
+          amount: data.payment.amountPaise,
+          currency: data.payment.currency,
+          name: 'SkillsUp',
+          description: `Enrollment for ${data.payment.courseTitle}`,
+          order_id: data.payment.orderId,
+          prefill: {
+            name: data.payment.studentName,
+            email: data.payment.studentEmail
+          },
+          theme: {
+            color: '#4F46E5'
+          },
+          handler: verifyCoursePayment,
+          modal: {
+            ondismiss: () => {
+              handlePaymentStateChange('Checkout closed before payment completion.', 'cancelled');
+            }
+          }
+        });
+
+        razorpay.on('payment.failed', (event) => {
+          const failureReason = event?.error?.description || event?.error?.reason || 'Payment failed.';
+          handlePaymentStateChange(failureReason, 'failed');
+        });
+
+        razorpay.open();
       } catch (error) {
-        alert(`Enrollment failed: ${error.message}`);
+        setCourseModalStatus(error.message, 'error');
+        await refreshCourseAccessState().catch(() => {
+          setEnrollButtonState('Enroll Now', false);
+        });
       }
     }
 

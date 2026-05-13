@@ -177,13 +177,11 @@ cp .env.example .env
 
 ### 3. Run Application
 ```bash
-# Terminal 1: Backend
-cd server
+# Terminal 1: Original App (from project root)
 npm run dev
 
-# Terminal 2: Frontend
-cd client
-npm start
+# Terminal 2: Optional React Client
+npm run client:start
 ```
 
 ### 4. Access Application

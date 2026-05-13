@@ -1,4 +1,4 @@
-# Security Specification - ADZ4NEEDZ
+# Security Specification - SkillsUp
 
 ## Data Invariants
 1. A user profile MUST match the authenticated user's UID.

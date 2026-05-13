@@ -75,7 +75,7 @@ npm run start
 - 🔒 **5 attempt limit** - Users get 5 attempts before code expires
 - 🔄 **Resend option** - Users can request a new OTP if they don't receive it
 - 📧 **Professional emails** - Beautiful HTML formatted OTP emails
-- 🌐 **Email branding** - Emails show "Adz4Needz" branding
+- 🌐 **Email branding** - Emails show "SkillsUp" branding
 
 ## Testing
 
@@ -142,7 +142,7 @@ Response: { verified: true/false }
 
 ### OTP email going to spam:
 - Check spam folder
-- Add noreply@adz4needz.com to contacts
+- Add noreply@SkillsUp.com to contacts
 - Gmail might initially mark transactional emails as spam
 
 ### User keeps getting "Invalid OTP":

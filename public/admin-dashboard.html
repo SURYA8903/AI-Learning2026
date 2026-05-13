@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard - Adz4Needz</title>
+  <title>Admin Dashboard - SkillsUp</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -159,7 +159,7 @@
   <div class="flex h-screen">
     <aside class="hidden lg:flex lg:w-64 bg-white border-r-2 border-gray-200 flex-col p-6">
       <div class="mb-8">
-        <span class="text-2xl font-black aqua-gradient-text block">Adz4Needz</span>
+        <span class="text-2xl font-black aqua-gradient-text block">SkillsUp</span>
         <p class="text-sm text-gray-500 mt-1">Admin Panel</p>
       </div>
 
@@ -375,7 +375,7 @@
               <form id="settingsForm" class="space-y-5" onsubmit="handleSettingsSubmit(event)">
                 <div>
                   <label class="block font-bold text-gray-700 mb-2">Platform Name</label>
-                  <input id="settingPlatformName" type="text" class="input-field" placeholder="Adz4Needz">
+                  <input id="settingPlatformName" type="text" class="input-field" placeholder="SkillsUp">
                 </div>
                 <div>
                   <label class="block font-bold text-gray-700 mb-2">Support Email</label>
@@ -774,7 +774,7 @@
         const response = await fetch(`${API_URL}/admin/settings`);
         const settings = response.ok ? await response.json() : {};
 
-        document.getElementById('settingPlatformName').value = settings.platformName || 'Adz4Needz';
+        document.getElementById('settingPlatformName').value = settings.platformName || 'SkillsUp';
         document.getElementById('settingSupportEmail').value = settings.supportEmail || '';
         document.getElementById('settingAnnouncement').value = settings.announcement || '';
         document.getElementById('settingAllowRegistrations').checked = settings.allowRegistrations !== 'false';

@@ -9,10 +9,10 @@ async function insertDummyData() {
 
   // 1. Insert Profiles (5 Users)
   const profiles = [
-    { id: '10a80101-0000-0000-0000-000000000001', email: 'trainer1@adz4needz.com', full_name: 'Dr. Sarah Vance', role: 'trainer', status: 'active', avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100' },
+    { id: '10a80101-0000-0000-0000-000000000001', email: 'trainer1@SkillsUp.com', full_name: 'Dr. Sarah Vance', role: 'trainer', status: 'active', avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100' },
     { id: '10a80101-0000-0000-0000-000000000002', email: 'student1@gmail.com', full_name: 'Alexander Sterling', role: 'student', status: 'active', avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100' },
-    { id: '10a80101-0000-0000-0000-000000000003', email: 'admin@adz4needz.com', full_name: 'Marcus Chen', role: 'admin', status: 'active', avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100' },
-    { id: '10a80101-0000-0000-0000-000000000004', email: 'trainer2@adz4needz.com', full_name: 'Prof. James Wilson', role: 'trainer', status: 'active', avatar_url: 'https://ui-avatars.com/api/?name=James+Wilson' },
+    { id: '10a80101-0000-0000-0000-000000000003', email: 'admin@SkillsUp.com', full_name: 'Marcus Chen', role: 'admin', status: 'active', avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100' },
+    { id: '10a80101-0000-0000-0000-000000000004', email: 'trainer2@SkillsUp.com', full_name: 'Prof. James Wilson', role: 'trainer', status: 'active', avatar_url: 'https://ui-avatars.com/api/?name=James+Wilson' },
     { id: '10a80101-0000-0000-0000-000000000005', email: 'student2@gmail.com', full_name: 'Elena Rodriguez', role: 'student', status: 'active', avatar_url: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100' }
   ];
 

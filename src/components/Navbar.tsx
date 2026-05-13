@@ -22,7 +22,7 @@ export default function Navbar() {
                 <Sparkles className="h-6 w-6" />
               </div>
               <span className="text-2xl font-black text-slate-900 tracking-tighter group-hover:text-primary transition-colors">
-                ADZ4NEEDZ
+                SkillsUp
               </span>
             </Link>
           </div>
