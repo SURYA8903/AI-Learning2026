@@ -53,7 +53,7 @@ if not exist "server\.env" (
 if not exist "client\.env" (
     echo Creating client\.env...
     (
-        echo REACT_APP_API_URL=http://localhost:5000/api
+        echo REACT_APP_API_URL=http://localhost:3000/api
         echo REACT_APP_RAZORPAY_KEY_ID=your_test_key
     ) > client\.env
     echo ✅ client\.env created
@@ -102,7 +102,7 @@ echo    npm start
 echo.
 echo 3️⃣  Access the application:
 echo    Frontend: http://localhost:3000
-echo    API: http://localhost:5000/api
+echo    API: http://localhost:3000/api
 echo.
 echo 📚 Documentation:
 echo    - Setup Guide: SETUP_GUIDE.md

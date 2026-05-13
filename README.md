@@ -186,8 +186,8 @@ npm run client:start
 
 ### 4. Access Application
 - **Frontend:** http://localhost:3000
-- **API:** http://localhost:5000/api
-- **API Health:** http://localhost:5000/api/health
+- **API:** http://localhost:3000/api
+- **API Health:** http://localhost:3000/api/health
 
 ---
 
@@ -338,16 +338,16 @@ npm run client:start
 ### Test Endpoints
 ```bash
 # Health check
-curl http://localhost:5000/api/health
+curl http://localhost:3000/api/health
 
 # Create order (with token)
-curl -X POST http://localhost:5000/api/payment/create-order \
+curl -X POST http://localhost:3000/api/payment/create-order \
   -H "Authorization: Bearer TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"courseId": "course_id"}'
 
 # Verify certificate
-curl http://localhost:5000/api/certificate/verify/CERT-ID
+curl http://localhost:3000/api/certificate/verify/CERT-ID
 ```
 
 ---

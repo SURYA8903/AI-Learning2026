@@ -7,7 +7,7 @@ const App = () => {
   const [currentPage, setCurrentPage] = useState('home');
   const [loading, setLoading] = useState(false);
 
-  const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+  const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
 
   // Check if user is logged in on mount
   useEffect(() => {

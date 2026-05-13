@@ -160,7 +160,7 @@ module.exports = {
   // Database
   DATABASE: {
     RETRY_ATTEMPTS: 5,
-    RETRY_DELAY_MS: 5000,
+    RETRY_DELAY_MS: 3000,
   },
 
   // Pagination

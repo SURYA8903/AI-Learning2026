@@ -96,7 +96,7 @@ cp .env.example .env
 ```env
 # Server Configuration
 NODE_ENV=development
-PORT=5000
+PORT=3000
 LOG_LEVEL=debug
 
 # Database
@@ -130,7 +130,7 @@ CLIENT_REDIRECT_URL=http://localhost:3000/dashboard
 ### Edit `client/.env` file:
 
 ```env
-REACT_APP_API_URL=http://localhost:5000/api
+REACT_APP_API_URL=http://localhost:3000/api
 REACT_APP_RAZORPAY_KEY_ID=rzp_live_xxxxx
 ```
 
@@ -269,7 +269,7 @@ npm run dev
 
 Expected output:
 ```
-Server running in development mode on port 5000
+Server running in development mode on port 3000
 MongoDB Connected: cluster.mongodb.net
 Google APIs initialized successfully
 Email service initialized successfully
@@ -293,7 +293,7 @@ Compiled app is running at: http://localhost:3000
 
 ### Backend Health Check
 ```bash
-curl http://localhost:5000/api/health
+curl http://localhost:3000/api/health
 ```
 
 Expected response:
@@ -306,7 +306,7 @@ Expected response:
 
 ### Test Payment Order
 ```bash
-curl -X POST http://localhost:5000/api/payment/create-order \
+curl -X POST http://localhost:3000/api/payment/create-order \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"courseId": "course_id"}'
@@ -314,7 +314,7 @@ curl -X POST http://localhost:5000/api/payment/create-order \
 
 ### Test Certificate Generation
 ```bash
-curl -X POST http://localhost:5000/api/certificate/generate/student_id/course_id \
+curl -X POST http://localhost:3000/api/certificate/generate/student_id/course_id \
   -H "Authorization: Bearer ADMIN_TOKEN"
 ```
 
@@ -400,13 +400,13 @@ Failed to copy certificate template
 
 **Error:**
 ```
-Error: listen EADDRINUSE: address already in use :::5000
+Error: listen EADDRINUSE: address already in use :::3000
 ```
 
 **Solution:**
 ```bash
-# Kill process on port 5000
-lsof -ti:5000 | xargs kill -9
+# Kill process on port 3000
+lsof -ti:3000 | xargs kill -9
 
 # Or use different port
 PORT=5001 npm run dev

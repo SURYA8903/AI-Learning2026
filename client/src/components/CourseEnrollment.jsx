@@ -10,7 +10,7 @@ const CourseEnrollment = ({ courseId, courseName, coursePrice, onEnrollmentSucce
   const [orderId, setOrderId] = useState(null);
   const [studentInfo, setStudentInfo] = useState(null);
 
-  const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+  const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
   const token = localStorage.getItem('token');
   const studentData = JSON.parse(localStorage.getItem('user') || '{}');
 

@@ -49,7 +49,7 @@ fi
 if [ ! -f "client/.env" ]; then
     echo "Creating client/.env..."
     cat > client/.env << EOF
-REACT_APP_API_URL=http://localhost:5000/api
+REACT_APP_API_URL=http://localhost:3000/api
 REACT_APP_RAZORPAY_KEY_ID=your_test_key
 EOF
     echo "✅ client/.env created"
@@ -98,7 +98,7 @@ echo "   npm start"
 echo ""
 echo "3️⃣  Access the application:"
 echo "   Frontend: http://localhost:3000"
-echo "   API: http://localhost:5000/api"
+echo "   API: http://localhost:3000/api"
 echo ""
 echo "📚 Documentation:"
 echo "   - Setup Guide: SETUP_GUIDE.md"

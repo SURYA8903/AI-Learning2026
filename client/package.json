@@ -4,7 +4,7 @@
   "description": "React frontend for E-Learning Platform with Certificate Generation",
   "private": true,
   "homepage": "http://localhost:3000",
-  "proxy": "http://localhost:5000",
+  "proxy": "http://localhost:3000",
   "dependencies": {
     "axios": "^1.3.4",
     "react": "^18.2.0",
