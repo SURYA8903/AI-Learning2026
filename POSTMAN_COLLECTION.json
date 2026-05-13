@@ -1,0 +1,318 @@
+{
+  "info": {
+    "name": "E-Learning Platform API",
+    "description": "Complete API collection for E-Learning Platform with Payment & Certificate Management",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Payment Endpoints",
+      "item": [
+        {
+          "name": "Create Payment Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payment/create-order",
+              "host": ["{{baseUrl}}"],
+              "path": ["payment", "create-order"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"courseId\": \"65abc123def456789\"}"
+            }
+          }
+        },
+        {
+          "name": "Verify Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payment/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["payment", "verify"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"razorpay_payment_id\": \"pay_1234567890\", \"razorpay_order_id\": \"order_1a2b3c4d5e6f\", \"razorpay_signature\": \"signature_here\"}"
+            }
+          }
+        },
+        {
+          "name": "Get Payment History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payment/history",
+              "host": ["{{baseUrl}}"],
+              "path": ["payment", "history"]
+            }
+          }
+        },
+        {
+          "name": "Request Refund",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payment/refund",
+              "host": ["{{baseUrl}}"],
+              "path": ["payment", "refund"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"paymentId\": \"65abc123def456789\", \"reason\": \"Course not suitable\"}"
+            }
+          }
+        },
+        {
+          "name": "Check Course Access",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payment/check-access/65abc123def456789",
+              "host": ["{{baseUrl}}"],
+              "path": ["payment", "check-access", "65abc123def456789"]
+            }
+          }
+        },
+        {
+          "name": "Payment Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payment/webhook",
+              "host": ["{{baseUrl}}"],
+              "path": ["payment", "webhook"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"event\": \"payment.authorized\", \"payload\": {\"payment\": {\"id\": \"pay_1234567890\", \"status\": \"authorized\"}}}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Certificate Endpoints",
+      "item": [
+        {
+          "name": "Generate Certificate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/certificate/generate/65abc123def456789/65abc123def456790",
+              "host": ["{{baseUrl}}"],
+              "path": ["certificate", "generate", "65abc123def456789", "65abc123def456790"]
+            }
+          }
+        },
+        {
+          "name": "Get My Certificates",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/certificate/my-certificates",
+              "host": ["{{baseUrl}}"],
+              "path": ["certificate", "my-certificates"]
+            }
+          }
+        },
+        {
+          "name": "Verify Certificate",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/certificate/verify/CERT-TIMESTAMP-RANDOM",
+              "host": ["{{baseUrl}}"],
+              "path": ["certificate", "verify", "CERT-TIMESTAMP-RANDOM"]
+            }
+          }
+        },
+        {
+          "name": "Download Certificate",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/certificate/download/CERT-TIMESTAMP-RANDOM",
+              "host": ["{{baseUrl}}"],
+              "path": ["certificate", "download", "CERT-TIMESTAMP-RANDOM"]
+            }
+          }
+        },
+        {
+          "name": "Revoke Certificate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/certificate/revoke/65abc123def456789/CERT-TIMESTAMP-RANDOM",
+              "host": ["{{baseUrl}}"],
+              "path": ["certificate", "revoke", "65abc123def456789", "CERT-TIMESTAMP-RANDOM"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"reason\": \"Breach of integrity\"}"
+            }
+          }
+        },
+        {
+          "name": "Bulk Generate Certificates",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/certificate/bulk-generate",
+              "host": ["{{baseUrl}}"],
+              "path": ["certificate", "bulk-generate"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"enrollments\": [{\"studentId\": \"student_id_1\", \"courseId\": \"course_id_1\"}, {\"studentId\": \"student_id_2\", \"courseId\": \"course_id_2\"}]}"
+            }
+          }
+        },
+        {
+          "name": "Update Status & Generate Certificate",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/certificate/update-status/65abc123def456789/65abc123def456790",
+              "host": ["{{baseUrl}}"],
+              "path": ["certificate", "update-status", "65abc123def456789", "65abc123def456790"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\": \"completed\", \"completionDate\": \"2024-01-15T10:30:00Z\", \"progress\": 100}"
+            }
+          }
+        },
+        {
+          "name": "Get Certificate Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/certificate/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["certificate", "stats"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "admin_token",
+      "value": ""
+    }
+  ]
+}
