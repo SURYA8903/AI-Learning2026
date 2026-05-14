@@ -643,6 +643,47 @@
       setVal('settingsCompletedCount', completedCount);
     }
 
+    // ─── SHARED COURSE CARD BUILDER ──────────────────────────────────────────────
+    // Used by both displayDashboardCourses() and renderRecommendations().
+    // course shape: { id, title, description|desc, instructor, duration, level,
+    //                 price, students, rating, category }
+    // actionLabel / onClickExpr allow callers to customise the CTA button.
+    function buildCourseCard(course, actionLabel, onClickExpr) {
+      const levelColorMap = {
+        Beginner:     'bg-green-100 text-green-700',
+        Intermediate: 'bg-yellow-100 text-yellow-700',
+        Advanced:     'bg-red-100 text-red-700'
+      };
+      const levelClass   = levelColorMap[course.level] || 'bg-purple-100 text-purple-700';
+      const description  = course.description || course.desc || '';
+      const rating       = course.rating ? Number(course.rating).toFixed(1) : null;
+      const category     = course.category || '';
+
+      return `
+        <div class="course-card flex flex-col">
+          <div class="flex justify-between items-start gap-3 mb-3">
+            <div class="min-w-0 flex-1">
+              <h4 class="text-lg font-bold text-gray-900 leading-tight">${course.title}</h4>
+              ${category ? `<p class="text-xs text-purple-500 font-semibold mt-0.5">${category}</p>` : ''}
+            </div>
+            <span class="shrink-0 ${levelClass} px-3 py-1 rounded-full text-xs font-bold">${course.level || 'All Levels'}</span>
+          </div>
+          <p class="text-gray-600 text-sm mb-4 flex-1">${description}</p>
+          <div class="space-y-2 text-sm text-gray-600 mb-4">
+            <div class="flex justify-between"><span>Instructor</span><strong>${course.instructor || '—'}</strong></div>
+            <div class="flex justify-between"><span>Duration</span><strong>${course.duration || '—'}</strong></div>
+            <div class="flex justify-between"><span>Enrolled Students</span><strong>${course.students || 0}</strong></div>
+
+          </div>
+          <div class="flex justify-between items-center mt-auto pt-2 border-t border-gray-100">
+            <span class="text-xl font-black text-purple-500">${Number(course.price || 0) > 0 ? 'Rs.' + Number(course.price).toLocaleString() : 'Free'}</span>
+            <button onclick="${onClickExpr}" class="btn-primary text-sm">${actionLabel}</button>
+          </div>
+        </div>
+      `;
+    }
+    // ─────────────────────────────────────────────────────────────────────────────
+
     function displayDashboardCourses(courses) {
       const coursesList = document.getElementById('dashboardCoursesList');
 
@@ -651,24 +692,10 @@
         return;
       }
 
-      coursesList.innerHTML = courses.map((course) => `
-        <div class="course-card">
-          <div class="flex justify-between items-start gap-3 mb-3">
-            <h4 class="text-lg font-bold text-gray-900 flex-1">${course.title}</h4>
-            <span class="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-bold">${course.level}</span>
-          </div>
-          <p class="text-gray-600 text-sm mb-4">${course.description}</p>
-          <div class="space-y-2 text-sm text-gray-600 mb-4">
-            <div class="flex justify-between"><span>Instructor</span><strong>${course.instructor}</strong></div>
-            <div class="flex justify-between"><span>Duration</span><strong>${course.duration}</strong></div>
-            <div class="flex justify-between"><span>Enrolled Students</span><strong>${course.students || 0}</strong></div>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-xl font-black text-purple-500">Rs.${Number(course.price || 0).toLocaleString()}</span>
-            <button onclick="showCourseDetails(${course.id})" class="btn-primary text-sm">${enrolledIds.includes(course.id) ? 'View Course' : 'View Details'}</button>
-          </div>
-        </div>
-      `).join('');
+      coursesList.innerHTML = courses.map((course) => {
+        const label = enrolledIds.includes(course.id) ? 'View Course' : 'View Details';
+        return buildCourseCard(course, label, `showCourseDetails(${course.id})`);
+      }).join('');
     }
 
     function displayEnrolledCourses(courses) {
@@ -690,15 +717,12 @@
                 ${isComplete ? 'Completed' : 'Active'}
               </span>
             </div>
-            <p class="text-gray-600 text-sm mb-4">Instructor: ${course.instructor}</p>
-            <div class="flex justify-between text-sm text-gray-600 mb-2">
-              <span>Progress</span>
-              <strong>${progress}%</strong>
+            <div class="space-y-2 text-sm text-gray-600 mb-4">
+              <div class="flex justify-between"><span>Instructor</span><strong>${course.instructor}</strong></div>
+              <div class="flex justify-between"><span>Duration</span><strong>${course.duration || '—'}</strong></div>
+              <div class="flex justify-between"><span>Level</span><strong>${course.level || '—'}</strong></div>
             </div>
-            <div class="progress-bar mb-4">
-              <div class="progress-fill" style="width: ${Math.min(progress, 100)}%"></div>
-            </div>
-            <button onclick="showCourseDetails(${course.course_id || course.id})" class="btn-primary w-full">Continue Learning</button>
+            <button onclick="showCourseDetails(${course.course_id || course.id})" class="btn-primary w-full">View Details</button>
           </div>
         `;
       }).join('');
@@ -791,32 +815,19 @@
       const grid = document.getElementById('recommendGrid');
 
       grid.innerHTML = courses.map((course) => {
-        const encodedCourse = encodeURIComponent(JSON.stringify(course));
-        const levelClass = recommendationLevelClasses[course.level] || 'bg-gray-100 text-gray-600';
+        // Build the unified card
+        const label = enrolledIds.includes(course.id) ? 'View Course' : 'Enroll Now';
+        let card = buildCourseCard(course, label, `showCourseDetails(${course.id})`);
 
-        return `
-          <div class="course-card flex flex-col gap-3">
-            <div class="flex items-start gap-3">
-              <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center text-2xl shrink-0">${course.icon || 'C'}</div>
-              <div class="min-w-0 flex-1">
-                <h4 class="font-bold text-gray-900 text-sm leading-tight">${course.title}</h4>
-                <p class="text-xs text-gray-500 mt-1">${course.category}</p>
-              </div>
-            </div>
-            <p class="text-sm text-gray-600">${course.desc}</p>
-            <div class="flex flex-wrap gap-2 text-xs">
-              <span class="px-2 py-1 rounded-full ${levelClass}">${course.level}</span>
-              <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded-full">${course.duration}</span>
-              <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded-full">Rating ${course.rating}</span>
-            </div>
-            <div class="flex flex-wrap gap-1">
-              ${(course.topics || []).slice(0, 4).map((topic) => `<span class="text-xs bg-purple-50 text-purple-600 px-2 py-0.5 rounded">${topic}</span>`).join('')}
-            </div>
-            <button onclick="askDoubtAboutCourse('${encodedCourse}')" class="mt-auto text-sm text-purple-600 font-semibold hover:underline text-left">
-              Ask about this course
-            </button>
-          </div>
-        `;
+        // Append the "Ask about this course" link inside the card, before closing </div>
+        const encodedCourse = encodeURIComponent(JSON.stringify(course));
+        const askLink = `<div class="mt-2 text-center">
+          <button onclick="askDoubtAboutCourse('${encodedCourse}')" class="text-xs text-purple-500 font-semibold hover:underline">
+            Ask AI about this course
+          </button>
+        </div>`;
+        card = card.replace(/(\s*<\/div>\s*)$/, askLink + '$1');
+        return card;
       }).join('');
 
       document.getElementById('recommendResults').classList.remove('hidden');
@@ -983,8 +994,11 @@
           return;
         }
 
-        if (!window.Razorpay || !data.payment) {
-          throw new Error('Secure checkout is unavailable right now. Please refresh and try again.');
+        if (!window.Razorpay) {
+          throw new Error('Razorpay checkout script failed to load. Please check your internet connection and refresh the page.');
+        }
+        if (!data.payment) {
+          throw new Error('Payment gateway is not configured on the server. Please add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to your .env file.');
         }
 
         currentPaymentSession = {
