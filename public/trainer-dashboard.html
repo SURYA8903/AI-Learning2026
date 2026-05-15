@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trainer Dashboard - SkillsUp</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    h1, h2, h3, h4, h5, h6 { font-family: 'Poppins', sans-serif; }
+
+    .aqua-gradient { background: linear-gradient(135deg, #0093E9 0%, #00C9A7 100%); }
+    .aqua-gradient-text { background: linear-gradient(to right, #0093E9, #00C9A7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+    .nav-item {
+      padding: 12px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+    }
+
+    .nav-item.active {
+      background: linear-gradient(135deg, #4F46E5 0%, #06B6D4 100%);
+      color: white;
+    }
+
+    .stat-card,
+    .panel-card,
+    .course-card,
+    .student-card,
+    .task-card {
+      background: white;
+      border: 2px solid #E5E7EB;
+      border-radius: 12px;
+      transition: all 0.3s;
+    }
+
+    .stat-card,
+    .panel-card,
+    .course-card,
+    .student-card,
+    .task-card {
+      padding: 20px;
+    }
+
+    .stat-card:hover,
+    .panel-card:hover,
+    .course-card:hover,
+    .student-card:hover,
+    .task-card:hover {
+      border-color: #4F46E5;
+      box-shadow: 0 10px 25px rgba(79, 70, 229, 0.12);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #4F46E5 0%, #06B6D4 100%);
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(79, 70, 229, 0.3);
+    }
+
+    .section.hidden {
+      display: none;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      background: #F3F4F6;
+      padding: 12px;
+      text-align: left;
+      font-weight: bold;
+      color: #4F46E5;
+      border-bottom: 2px solid #E5E7EB;
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #E5E7EB;
+    }
+
+    tr:hover {
+      background: #F9FAFB;
+    }
+
+    .status-badge.completed { background-color: #DEF7EC; color: #03543F; }
+    .status-badge.in-progress { background-color: #E1EFFE; color: #1E429F; }
+    .status-badge.in-review { background-color: #FEF3C7; color: #92400E; }
+    .status-badge.not-completed { background-color: #FDE8E8; color: #9B1C1C; }
+  </style>
+  <link rel="stylesheet" href="/premium-ui.css">
+  <script src="/premium-ui.js" defer></script>
+</head>
+<body class="bg-gray-50">
+  <div class="flex h-screen">
+    <aside class="hidden lg:flex lg:w-64 bg-white border-r-2 border-gray-200 flex-col p-6">
+      <div class="mb-8">
+        <span class="text-2xl font-black aqua-gradient-text block">SkillsUp</span>
+        <p class="text-sm text-gray-500 mt-1">Trainer Hub</p>
+      </div>
+
+      <nav class="flex-1 space-y-2">
+        <div class="nav-item active" data-nav="dashboard" onclick="showSection('dashboard', event)">Dashboard</div>
+        <div class="nav-item" data-nav="courses" onclick="showSection('courses', event)">My Courses</div>
+        <div class="nav-item" data-nav="students" onclick="showSection('students', event)">Enrolled Students</div>
+        <div class="nav-item" data-nav="manage-assignments" onclick="showSection('manage-assignments', event)">Manage Assignments</div>
+        <div class="nav-item" data-nav="schedule-classes" onclick="showSection('schedule-classes', event)">Schedule Classes</div>
+        <div class="nav-item" data-nav="schedule" onclick="showSection('schedule', event)">Weekly Schedule</div>
+        <div class="nav-item" data-nav="analytics" onclick="showSection('analytics', event)">Analytics</div>
+        <div class="nav-item" data-nav="tasks" onclick="showSection('tasks', event)">To-Do List</div>
+      </nav>
+
+      <button onclick="logout()" class="w-full py-2 px-4 bg-red-50 text-red-600 font-bold rounded-lg hover:bg-red-100 transition">
+        Logout
+      </button>
+    </aside>
+
+    <main class="flex-1 overflow-auto">
+      <nav class="bg-white border-b-2 border-gray-200 px-6 py-4 flex justify-between items-center sticky top-0 z-40">
+        <h1 class="text-2xl font-black text-gray-900">Trainer Dashboard</h1>
+        <div class="flex items-center gap-4">
+          <span id="userName" class="font-bold text-gray-700"></span>
+          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-blue-400"></div>
+        </div>
+      </nav>
+
+      <div class="p-6 lg:p-8 space-y-8">
+        <section data-section="dashboard" class="section space-y-8">
+          <div>
+            <h2 class="text-3xl font-black text-gray-900 mb-2">Welcome, <span id="welcomeName">Trainer</span></h2>
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="stat-card">
+              <div class="text-3xl mb-2">1</div>
+              <p class="text-gray-600 text-sm">Active Courses</p>
+              <p class="text-3xl font-black text-purple-500" id="courseCount"></p>
+            </div>
+            <div class="stat-card">
+              <div class="text-3xl mb-2">2</div>
+              <p class="text-gray-600 text-sm">Enrolled Students</p>
+              <p class="text-3xl font-black text-blue-500" id="studentCount"></p>
+            </div>
+            <div class="stat-card">
+              <div class="text-3xl mb-2">3</div>
+              <p class="text-gray-600 text-sm">Average Progress</p>
+              <p class="text-3xl font-black text-amber-500" id="avgProgress">0%</p>
+            </div>
+            <div class="stat-card">
+              <div class="text-3xl mb-2">4</div>
+              <p class="text-black text-sm">Total Earnings</p>
+              <p class="text-3xl font-black text-green-500" id="earnings">Rs.0</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="panel-card">
+              <h3 class="text-xl font-bold text-gray-900 mb-4">Upcoming Schedule</h3>
+              <div id="scheduleOverview" class="space-y-3">
+                <p class="text-gray-500">Loading schedule...</p>
+              </div>
+            </div>
+
+            <div class="panel-card">
+              <h3 class="text-xl font-bold text-gray-900 mb-4">Pending Tasks</h3>
+              <div id="pendingTasksOverview" class="space-y-3">
+                <p class="text-gray-500">Loading tasks...</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section data-section="courses" class="section hidden">
+          <div class="flex justify-between items-center mb-6">
+            <div>
+              <h2 class="text-3xl font-black text-gray-900">My Courses</h2>
+              <p class="text-gray-600 mt-2">Ratings have been removed until the platform has real review data.</p>
+            </div>
+          </div>
+          <div id="coursesList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div class="text-center py-8 text-gray-500 col-span-full">Loading courses...</div>
+          </div>
+        </section>
+
+        <section data-section="students" class="section hidden">
+          <h2 class="text-3xl font-black text-gray-900 mb-6">Enrolled Students</h2>
+          <div class="mb-6">
+            <label class="block font-bold text-gray-700 mb-2">Select Course</label>
+            <select id="courseSelect" onchange="loadEnrolledStudents()" class="px-4 py-2 border-2 border-gray-300 rounded-lg w-full md:w-80">
+              <option value="">Choose a course...</option>
+            </select>
+          </div>
+          <div id="enrolledStudentsList" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="text-center py-8 text-gray-500 col-span-full">Select a course to view enrolled students.</div>
+          </div>
+        </section>
+
+        <section data-section="manage-assignments" class="section hidden space-y-6">
+          <h2 class="text-3xl font-black text-gray-900 mb-2">Manage Assignments</h2>
+          <div class="panel-card">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">Create New Assignment</h3>
+            <form id="assignmentForm" class="space-y-4" onsubmit="handleAssignmentSubmit(event)">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-1">Target Course</label>
+                  <select id="asgCourseSelect" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg" required></select>
+                </div>
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-1">Due Date</label>
+                  <input id="asgDueDate" type="date" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg" required>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Assignment Title</label>
+                <input id="asgTitle" type="text" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg" placeholder="Final Project Proposal" required>
+              </div>
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Instructions</label>
+                <textarea id="asgDesc" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg h-32" placeholder="Detail the assignment requirements..."></textarea>
+              </div>
+              <button type="submit" class="btn-primary w-full">Create Assignment</button>
+            </form>
+          </div>
+        </section>
+
+        <section data-section="schedule-classes" class="section hidden space-y-6">
+          <h2 class="text-3xl font-black text-gray-900 mb-2">Schedule Classes</h2>
+          <div class="panel-card">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">Add Class Session</h3>
+            <form id="classForm" class="space-y-4" onsubmit="handleClassSubmit(event)">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-1">Target Course</label>
+                  <select id="clCourseSelect" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg" required></select>
+                </div>
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-1">Scheduled At</label>
+                  <input id="clDate" type="datetime-local" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg" required>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Session Title</label>
+                <input id="clTitle" type="text" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg" placeholder="Live Q&A Session" required>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-1">Video URL (Recorded)</label>
+                  <input id="clVideoUrl" type="url" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg" placeholder="https://youtube.com/...">
+                </div>
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-1">Live Link (Zoom/Meet)</label>
+                  <input id="clLiveLink" type="url" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg" placeholder="https://zoom.us/j/...">
+                </div>
+              </div>
+              <button type="submit" class="btn-primary w-full">Schedule Session</button>
+            </form>
+          </div>
+        </section>
+
+        <section data-section="schedule" class="section hidden">
+          <h2 class="text-3xl font-black text-gray-900 mb-6">My Schedule</h2>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="panel-card">
+              <h3 class="text-xl font-bold text-gray-900 mb-4">Weekly Sessions</h3>
+              <div id="fullScheduleList" class="space-y-3">
+                <p class="text-gray-500">Loading schedule...</p>
+              </div>
+            </div>
+            <div class="panel-card">
+              <h3 class="text-xl font-bold text-gray-900 mb-4">Today Focus</h3>
+              <div id="todaySchedule" class="space-y-3">
+                <p class="text-gray-500">Loading today's sessions...</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section data-section="analytics" class="section hidden space-y-6">
+          <div>
+            <h2 class="text-3xl font-black text-gray-900">Analytics</h2>
+            <p class="text-gray-600 mt-2">Graph view of actual course reach, progress, and revenue.</p>
+          </div>
+
+          <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div class="panel-card xl:col-span-2">
+              <h3 class="text-xl font-bold text-gray-900 mb-4">Students by Course</h3>
+              <canvas id="studentChart"></canvas>
+            </div>
+            <div class="panel-card">
+              <h3 class="text-xl font-bold text-gray-900 mb-4">Progress Distribution</h3>
+              <canvas id="progressChart"></canvas>
+            </div>
+            <div class="panel-card xl:col-span-3">
+              <h3 class="text-xl font-bold text-gray-900 mb-4">Revenue by Course</h3>
+              <canvas id="revenueChart"></canvas>
+            </div>
+          </div>
+
+          <div class="panel-card">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">Course Performance Table</h3>
+            <div class="overflow-x-auto">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Course</th>
+                    <th>Students</th>
+                    <th>Average Progress</th>
+                    <th>Revenue</th>
+                    <th>Duration</th>
+                  </tr>
+                </thead>
+                <tbody id="statsTable">
+                  <tr><td colspan="5" class="text-center text-gray-500">Loading analytics...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section data-section="tasks" class="section hidden space-y-6">
+          <div>
+            <h2 class="text-3xl font-black text-gray-900 mb-2">To-Do List</h2>
+            <p class="text-gray-600">Trainer tasks are now saved from the dashboard instead of a spreadsheet stub.</p>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 space-y-6">
+              <div class="panel-card">
+                <h3 class="text-xl font-bold text-gray-900 mb-4">Add Task</h3>
+                <form id="taskForm" class="grid grid-cols-1 md:grid-cols-3 gap-3" onsubmit="handleTaskSubmit(event)">
+                  <input id="taskInput" type="text" class="px-4 py-2 border-2 border-gray-300 rounded-lg md:col-span-2" placeholder="Review student submissions" required>
+                  <input id="taskTimeInput" type="text" class="px-4 py-2 border-2 border-gray-300 rounded-lg" placeholder="04:30 PM" required>
+                  <button type="submit" class="btn-primary md:col-span-3">Save Task</button>
+                </form>
+              </div>
+
+              <div id="tasksList" class="space-y-4">
+                <div class="text-center py-8 text-gray-500">Loading tasks...</div>
+              </div>
+            </div>
+
+            <div class="space-y-4">
+              <div class="panel-card">
+                <h3 class="text-xl font-bold text-gray-900 mb-4">Task Summary</h3>
+                <div class="space-y-3">
+                  <div class="p-3 bg-indigo-50 rounded-lg">
+                    <p class="font-bold text-indigo-700">Pending</p>
+                    <p class="text-sm text-indigo-600" id="pendingTaskCount">0 tasks</p>
+                  </div>
+                  <div class="p-3 bg-green-50 rounded-lg">
+                    <p class="font-bold text-green-700">Completed</p>
+                    <p class="text-sm text-green-600" id="completedTaskCount">0 tasks</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000/api';
+    let currentUser = null;
+    let userCourses = [];
+    let trainerSchedule = [];
+    let trainerTasks = [];
+    let analyticsCache = { courseBreakdown: [], progressDistribution: [] };
+    let studentChart = null;
+    let progressChart = null;
+    let revenueChart = null;
+
+    function showSection(sectionName, event) {
+      document.querySelectorAll('[data-section]').forEach((section) => {
+        section.classList.add('hidden');
+      });
+
+      const targetSection = document.querySelector(`[data-section="${sectionName}"]`);
+      if (targetSection) {
+        targetSection.classList.remove('hidden');
+      }
+
+      document.querySelectorAll('[data-nav]').forEach((item) => {
+        item.classList.remove('active');
+      });
+
+      const navTarget = event?.currentTarget || document.querySelector(`[data-nav="${sectionName}"]`);
+      if (navTarget) {
+        navTarget.classList.add('active');
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/';
+    }
+
+    async function loadUserData() {
+      const user = localStorage.getItem('user');
+      if (!user) {
+        window.location.href = '/';
+        return false;
+      }
+
+      currentUser = JSON.parse(user);
+      if (currentUser.role !== 'trainer') {
+        window.location.href = '/';
+        return false;
+      }
+
+      document.getElementById('userName').textContent = currentUser.name;
+      document.getElementById('welcomeName').textContent = currentUser.name.split(' ')[0];
+      return true;
+    }
+
+    async function loadTrainerStats() {
+      try {
+        const response = await fetch(`${API_URL}/trainer/stats/${currentUser.id}`);
+        const stats = response.ok ? await response.json() : {};
+        document.getElementById('courseCount').textContent = stats.courses || 0;
+        document.getElementById('studentCount').textContent = stats.students || 0;
+        document.getElementById('earnings').textContent = `Rs.${Number(stats.earnings || 0).toLocaleString()}`;
+      } catch (error) {
+        console.error('Error loading trainer stats:', error);
+      }
+    }
+
+    async function loadCourses() {
+      try {
+        const response = await fetch(`${API_URL}/courses`);
+        const allCourses = response.ok ? await response.json() : [];
+        userCourses = allCourses.filter(course => 
+          course.instructor && 
+          currentUser && 
+          course.instructor.toLowerCase() === currentUser.name.toLowerCase()
+        );
+
+        displayCourses();
+        populateCourseSelect();
+
+        const averageProgressValue = userCourses.length
+          ? Math.round(userCourses.reduce((sum, course) => sum + Number(course.average_progress || 0), 0) / userCourses.length)
+          : 0;
+        document.getElementById('avgProgress').textContent = `${averageProgressValue}%`;
+      } catch (error) {
+        console.error('Error loading trainer courses:', error);
+      }
+    }
+
+    function displayCourses() {
+      const coursesList = document.getElementById('coursesList');
+
+      if (!userCourses.length) {
+        coursesList.innerHTML = '<div class="col-span-full text-center py-8 text-gray-500">No courses assigned yet.</div>';
+        return;
+      }
+
+      coursesList.innerHTML = userCourses.map((course) => `
+        <div class="course-card">
+          <div class="flex justify-between items-start gap-3 mb-3">
+            <h4 class="text-lg font-bold text-gray-900 flex-1">${course.title}</h4>
+            <span class="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-bold">${course.level}</span>
+          </div>
+          <p class="text-gray-600 text-sm mb-4">${course.description}</p>
+          <div class="space-y-2 text-sm text-gray-600 mb-4">
+            <div class="flex justify-between"><span>Students</span><strong>${course.students || 0}</strong></div>
+            <div class="flex justify-between"><span>Average Progress</span><strong>${Math.round(Number(course.average_progress || 0))}%</strong></div>
+            <div class="flex justify-between"><span>Revenue</span><strong>Rs.${Number(course.revenue || 0).toLocaleString()}</strong></div>
+            <div class="flex justify-between"><span>Duration</span><strong>${course.duration}</strong></div>
+          </div>
+          <button onclick="viewCourseStudents(${course.id})" class="btn-primary w-full text-sm">View Students</button>
+        </div>
+      `).join('');
+    }
+
+    function populateCourseSelect() {
+      const selectors = ['courseSelect', 'asgCourseSelect', 'clCourseSelect'];
+      selectors.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.innerHTML = '<option value="">Choose a course...</option>' +
+            userCourses.map((course) => `<option value="${course.id}">${course.title}</option>`).join('');
+        }
+      });
+    }
+
+    async function handleAssignmentSubmit(event) {
+      event.preventDefault();
+      const courseId = document.getElementById('asgCourseSelect').value;
+      const title = document.getElementById('asgTitle').value;
+      const description = document.getElementById('asgDesc').value;
+      const dueDate = document.getElementById('asgDueDate').value;
+
+      try {
+        const res = await fetch(`${API_URL}/assignments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ course_id: courseId, title, description, due_date: dueDate })
+        });
+        if (res.ok) {
+          alert('Assignment created!');
+          event.target.reset();
+        }
+      } catch (err) { console.error(err); }
+    }
+
+    async function handleClassSubmit(event) {
+      event.preventDefault();
+      const courseId = document.getElementById('clCourseSelect').value;
+      const title = document.getElementById('clTitle').value;
+      const videoUrl = document.getElementById('clVideoUrl').value;
+      const liveLink = document.getElementById('clLiveLink').value;
+      const scheduledAt = document.getElementById('clDate').value;
+
+      try {
+        const res = await fetch(`${API_URL}/classes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ course_id: courseId, title, video_url: videoUrl, live_link: liveLink, scheduled_at: scheduledAt })
+        });
+        if (res.ok) {
+          alert('Class scheduled!');
+          event.target.reset();
+        }
+      } catch (err) { console.error(err); }
+    }
+
+    function viewCourseStudents(courseId) {
+      document.getElementById('courseSelect').value = String(courseId);
+      showSection('students');
+      loadEnrolledStudents();
+    }
+
+    async function loadEnrolledStudents() {
+      const courseId = document.getElementById('courseSelect').value;
+      const list = document.getElementById('enrolledStudentsList');
+
+      if (!courseId) {
+        list.innerHTML = '<div class="col-span-full text-center py-8 text-gray-500">Select a course to view enrolled students.</div>';
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/courses/${courseId}/students`);
+        const students = response.ok ? await response.json() : [];
+
+        if (!students.length) {
+          list.innerHTML = '<div class="col-span-full text-center py-8 text-gray-500">No students are enrolled in this course yet.</div>';
+          return;
+        }
+
+        list.innerHTML = students.map((student) => `
+          <div class="student-card">
+            <div class="flex justify-between items-start mb-3">
+              <div>
+                <h4 class="font-bold text-gray-900">${student.name}</h4>
+                <p class="text-sm text-gray-600">${student.email}</p>
+              </div>
+              <div class="text-right">
+                <span class="status-badge ${getStatusClass(student.completion_status || 'In Progress')} px-3 py-1 rounded-full text-xs font-bold block mb-1">
+                  ${student.completion_status || 'In Progress'}
+                </span>
+                <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold capitalize">${student.status}</span>
+              </div>
+            </div>
+            <div class="space-y-4 text-sm text-gray-600">
+              <div class="flex justify-between"><span>Progress</span><strong>${Number(student.progress || 0)}%</strong></div>
+              <div class="w-full bg-gray-200 rounded-full h-2">
+                <div class="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full" style="width: ${Math.min(Number(student.progress || 0), 100)}%"></div>
+              </div>
+              <p>Enrolled on ${new Date(student.enrolled_at).toLocaleDateString()}</p>
+              
+              <div class="pt-4 border-t border-gray-100">
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Update Completion Status</label>
+                <div class="flex gap-2">
+                  <select id="status-${student.enrollmentId}" class="flex-1 px-2 py-1 border rounded text-sm">
+                    <option value="In Progress" ${student.completion_status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+                    <option value="In Review" ${student.completion_status === 'In Review' ? 'selected' : ''}>In Review</option>
+                    <option value="Completed" ${student.completion_status === 'Completed' ? 'selected' : ''}>Completed</option>
+                    <option value="Not Completed" ${student.completion_status === 'Not Completed' ? 'selected' : ''}>Not Completed</option>
+                  </select>
+                  <button onclick="updateStudentStatus(${student.enrollmentId})" class="bg-indigo-600 text-white px-3 py-1 rounded text-sm font-bold hover:bg-indigo-700 transition">
+                    Update
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading enrolled students:', error);
+        list.innerHTML = '<div class="col-span-full text-center py-8 text-red-500">Unable to load students right now.</div>';
+      }
+    }
+
+    async function loadSchedule() {
+      try {
+        const response = await fetch(`${API_URL}/schedule/${currentUser.id}`);
+        trainerSchedule = response.ok ? await response.json() : [];
+        renderSchedule();
+      } catch (error) {
+        console.error('Error loading schedule:', error);
+      }
+    }
+
+    function renderSchedule() {
+      const overview = document.getElementById('scheduleOverview');
+      const fullScheduleList = document.getElementById('fullScheduleList');
+      const todaySchedule = document.getElementById('todaySchedule');
+      const dayMap = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const todayLabel = dayMap[new Date().getDay()];
+
+      if (!trainerSchedule.length) {
+        overview.innerHTML = '<p class="text-gray-500">No schedule available.</p>';
+        fullScheduleList.innerHTML = '<p class="text-gray-500">No weekly sessions available.</p>';
+        todaySchedule.innerHTML = '<p class="text-gray-500">No sessions scheduled for today.</p>';
+        return;
+      }
+
+      overview.innerHTML = trainerSchedule.slice(0, 3).map((item) => `
+        <div class="p-4 bg-gray-50 rounded-lg">
+          <p class="font-bold text-gray-900">${item.title}</p>
+          <p class="text-sm text-gray-600">${item.day_label || 'Any day'} | ${item.start_time} - ${item.end_time}</p>
+        </div>
+      `).join('');
+
+      fullScheduleList.innerHTML = trainerSchedule.map((item) => `
+        <div class="p-4 bg-gray-50 rounded-lg">
+          <div class="flex justify-between items-center gap-3">
+            <div>
+              <p class="font-bold text-gray-900">${item.title}</p>
+              <p class="text-sm text-gray-600">${item.day_label || 'Any day'}</p>
+            </div>
+            <p class="font-semibold text-gray-800">${item.start_time} - ${item.end_time}</p>
+          </div>
+        </div>
+      `).join('');
+
+      const todaysItems = trainerSchedule.filter((item) => item.day_label === todayLabel);
+      todaySchedule.innerHTML = todaysItems.length
+        ? todaysItems.map((item) => `
+            <div class="p-4 bg-blue-50 rounded-lg">
+              <p class="font-bold text-gray-900">${item.title}</p>
+              <p class="text-sm text-gray-600">${item.start_time} - ${item.end_time}</p>
+            </div>
+          `).join('')
+        : '<p class="text-gray-500">No sessions scheduled for today.</p>';
+    }
+
+    async function loadAnalytics() {
+      try {
+        const response = await fetch(`${API_URL}/trainer/analytics/${currentUser.id}`);
+        analyticsCache = response.ok ? await response.json() : { courseBreakdown: [], progressDistribution: [] };
+        renderAnalytics();
+      } catch (error) {
+        console.error('Error loading trainer analytics:', error);
+      }
+    }
+
+    function renderAnalytics() {
+      const courseBreakdown = analyticsCache.courseBreakdown || [];
+      const progressDistribution = analyticsCache.progressDistribution || [];
+      const statsTable = document.getElementById('statsTable');
+
+      if (!courseBreakdown.length) {
+        statsTable.innerHTML = '<tr><td colspan="5" class="text-center text-gray-500">No analytics available yet.</td></tr>';
+      } else {
+        statsTable.innerHTML = courseBreakdown.map((course) => `
+          <tr>
+            <td><strong>${course.title}</strong></td>
+            <td>${course.students}</td>
+            <td>${Math.round(Number(course.averageProgress || 0))}%</td>
+            <td>Rs.${Number(course.revenue || 0).toLocaleString()}</td>
+            <td>${course.duration}</td>
+          </tr>
+        `).join('');
+      }
+
+      const chartLabels = courseBreakdown.map((course) => course.title);
+      const studentsData = courseBreakdown.map((course) => Number(course.students || 0));
+      const revenueData = courseBreakdown.map((course) => Number(course.revenue || 0));
+
+      if (studentChart) studentChart.destroy();
+      if (progressChart) progressChart.destroy();
+      if (revenueChart) revenueChart.destroy();
+
+      studentChart = new Chart(document.getElementById('studentChart'), {
+        type: 'bar',
+        data: {
+          labels: chartLabels,
+          datasets: [{
+            label: 'Students',
+            data: studentsData,
+            backgroundColor: ['#4F46E5', '#06B6D4', '#10B981', '#F59E0B', '#EC4899', '#6366F1']
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+
+      progressChart = new Chart(document.getElementById('progressChart'), {
+        type: 'doughnut',
+        data: {
+          labels: progressDistribution.map((item) => item.label),
+          datasets: [{
+            data: progressDistribution.map((item) => Number(item.count || 0)),
+            backgroundColor: ['#94A3B8', '#06B6D4', '#10B981']
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+
+      revenueChart = new Chart(document.getElementById('revenueChart'), {
+        type: 'line',
+        data: {
+          labels: chartLabels,
+          datasets: [{
+            label: 'Revenue',
+            data: revenueData,
+            borderColor: '#4F46E5',
+            backgroundColor: 'rgba(79, 70, 229, 0.12)',
+            fill: true,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+
+    async function loadTasks() {
+      try {
+        const response = await fetch(`${API_URL}/tasks/${currentUser.id}`);
+        trainerTasks = response.ok ? await response.json() : [];
+        renderTasks();
+      } catch (error) {
+        console.error('Error loading trainer tasks:', error);
+      }
+    }
+
+    function renderTasks() {
+      const tasksList = document.getElementById('tasksList');
+      const pending = trainerTasks.filter((task) => task.status !== 'completed');
+      const completed = trainerTasks.filter((task) => task.status === 'completed');
+
+      document.getElementById('pendingTaskCount').textContent = `${pending.length} task${pending.length === 1 ? '' : 's'}`;
+      document.getElementById('completedTaskCount').textContent = `${completed.length} task${completed.length === 1 ? '' : 's'}`;
+
+      document.getElementById('pendingTasksOverview').innerHTML = pending.length
+        ? pending.slice(0, 3).map((task) => `
+            <div class="p-4 bg-gray-50 rounded-lg">
+              <p class="font-bold text-gray-900">${task.task}</p>
+              <p class="text-sm text-gray-600">${task.time}</p>
+            </div>
+          `).join('')
+        : '<p class="text-gray-500">No pending tasks.</p>';
+
+      if (!trainerTasks.length) {
+        tasksList.innerHTML = '<div class="panel-card text-center text-gray-500">No tasks yet. Add one above to plan your work.</div>';
+        return;
+      }
+
+      tasksList.innerHTML = trainerTasks.map((task) => `
+        <div class="task-card">
+          <div class="flex justify-between items-start gap-4">
+            <div class="flex gap-3">
+              <input type="checkbox" class="mt-1 w-5 h-5 cursor-pointer" ${task.status === 'completed' ? 'checked' : ''} onchange="toggleTask(${task.id}, this.checked)">
+              <div>
+                <p class="font-bold text-gray-900 ${task.status === 'completed' ? 'line-through text-gray-500' : ''}">${task.task}</p>
+                <p class="text-sm text-gray-600 mt-1">${task.time}</p>
+              </div>
+            </div>
+            <button onclick="deleteTask(${task.id})" class="text-red-600 font-semibold hover:text-red-700">Delete</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function handleTaskSubmit(event) {
+      event.preventDefault();
+
+      const task = document.getElementById('taskInput').value.trim();
+      const time = document.getElementById('taskTimeInput').value.trim();
+
+      if (!task || !time) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/tasks`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            trainer_id: currentUser.id,
+            task,
+            time,
+            status: 'pending'
+          })
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          trainerTasks.unshift(data);
+          renderTasks();
+          event.target.reset();
+        }
+      } catch (err) { console.error(err); }
+    }
+
+    function getStatusClass(status) {
+      if (!status) return 'in-progress';
+      return status.toLowerCase().replace(' ', '-');
+    }
+
+    async function updateStudentStatus(enrollmentId) {
+      const status = document.getElementById(`status-${enrollmentId}`).value;
+      const token = localStorage.getItem('token');
+
+      try {
+        const response = await fetch(`${API_URL}/trainer/approve-completion`, {
+          method: 'PUT',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ enrollmentId, completion_status: status })
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+          alert(result.message);
+          loadEnrolledStudents();
+        } else {
+          alert('Error: ' + (result.error || 'Failed to update status'));
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Failed to update status');
+      }
+    }
+
+    async function toggleTask(taskId, completed) {
+      try {
+        const response = await fetch(`${API_URL}/tasks/${taskId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: completed ? 'completed' : 'pending' })
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          alert(data.error || 'Unable to update task.');
+          return;
+        }
+
+        await loadTasks();
+      } catch (error) {
+        alert(`Unable to update task: ${error.message}`);
+      }
+    }
+
+    async function deleteTask(taskId) {
+      try {
+        const response = await fetch(`${API_URL}/tasks/${taskId}`, { method: 'DELETE' });
+        if (!response.ok) {
+          const data = await response.json();
+          alert(data.error || 'Unable to delete task.');
+          return;
+        }
+
+        await loadTasks();
+      } catch (error) {
+        alert(`Unable to delete task: ${error.message}`);
+      }
+    }
+
+    window.addEventListener('load', async () => {
+      if (!localStorage.getItem('token')) {
+        window.location.href = '/';
+        return;
+      }
+
+      const isReady = await loadUserData();
+      if (!isReady) {
+        return;
+      }
+
+      await Promise.all([
+        loadTrainerStats(),
+        loadCourses(),
+        loadSchedule(),
+        loadAnalytics(),
+        loadTasks()
+      ]);
+    });
+  </script>
+</body>
+</html>

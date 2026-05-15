@@ -1,0 +1,120 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Represents a user of the platform (Student, Trainer, or Admin).",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["student", "trainer", "admin"] },
+        "skills": { "type": "array", "items": { "type": "string" } },
+        "status": { "type": "string", "enum": ["approved", "suspended", "pending"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["fullName", "email", "role", "status"]
+    },
+    "Course": {
+      "title": "Course",
+      "description": "Educational content created by trainers.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "instructorId": { "type": "string" },
+        "instructorName": { "type": "string" },
+        "price": { "type": "number" },
+        "thumbnail": { "type": "string" },
+        "category": { "type": "string" },
+        "skillsRequired": { "type": "array", "items": { "type": "string" } },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "instructorId", "price", "status"]
+    },
+    "Purchase": {
+      "title": "Purchase",
+      "description": "Records of course purchases via Razorpay.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "courseId": { "type": "string" },
+        "amount": { "type": "number" },
+        "currency": { "type": "string" },
+        "razorpayOrderId": { "type": "string" },
+        "razorpayPaymentId": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "courseId", "amount", "status"]
+    },
+    "Submission": {
+      "title": "Submission",
+      "description": "User submissions for projects or assessments.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "courseId": { "type": "string" },
+        "type": { "type": "string", "enum": ["project", "assessment"] },
+        "content": { "type": "object" },
+        "grade": { "type": "number" },
+        "feedback": { "type": "string" },
+        "status": { "type": "string", "enum": ["submitted", "graded"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "courseId", "type", "content"]
+    },
+    "Assessment": {
+      "title": "Assessment",
+      "description": "Quizzes or tests for courses.",
+      "type": "object",
+      "properties": {
+        "courseId": { "type": "string" },
+        "title": { "type": "string" },
+        "questions": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["courseId", "title", "questions"]
+    },
+    "Certificate": {
+      "title": "Certificate",
+      "description": "Certificates issued upon course completion.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "courseId": { "type": "string" },
+        "userName": { "type": "string" },
+        "courseName": { "type": "string" },
+        "issuedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "courseId", "userName", "courseName", "issuedAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "Information about a platform user."
+    },
+    "courses/{courseId}": {
+      "schema": "Course",
+      "description": "Details of a course."
+    },
+    "purchases/{purchaseId}": {
+      "schema": "Purchase",
+      "description": "Course purchase transaction."
+    },
+    "submissions/{submissionId}": {
+      "schema": "Submission",
+      "description": "User work submission."
+    },
+    "assessments/{assessmentId}": {
+      "schema": "Assessment",
+      "description": "Course assessment content."
+    },
+    "certificates/{certificateId}": {
+      "schema": "Certificate",
+      "description": "Proof of course completion."
+    }
+  }
+}
