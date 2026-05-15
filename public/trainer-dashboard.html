@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,13 +8,32 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
   <style>
-    * { font-family: 'Inter', sans-serif; }
-    h1, h2, h3, h4, h5, h6 { font-family: 'Poppins', sans-serif; }
+    * {
+      font-family: 'Inter', sans-serif;
+    }
 
-    .aqua-gradient { background: linear-gradient(135deg, #0093E9 0%, #00C9A7 100%); }
-    .aqua-gradient-text { background: linear-gradient(to right, #0093E9, #00C9A7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      font-family: 'Poppins', sans-serif;
+    }
+
+    .aqua-gradient {
+      background: linear-gradient(135deg, #0093E9 0%, #00C9A7 100%);
+    }
+
+    .aqua-gradient-text {
+      background: linear-gradient(to right, #0093E9, #00C9A7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
 
     .nav-item {
       padding: 12px 16px;
@@ -100,14 +120,30 @@
       background: #F9FAFB;
     }
 
-    .status-badge.completed { background-color: #DEF7EC; color: #03543F; }
-    .status-badge.in-progress { background-color: #E1EFFE; color: #1E429F; }
-    .status-badge.in-review { background-color: #FEF3C7; color: #92400E; }
-    .status-badge.not-completed { background-color: #FDE8E8; color: #9B1C1C; }
+    .status-badge.completed {
+      background-color: #DEF7EC;
+      color: #03543F;
+    }
+
+    .status-badge.in-progress {
+      background-color: #E1EFFE;
+      color: #1E429F;
+    }
+
+    .status-badge.in-review {
+      background-color: #FEF3C7;
+      color: #92400E;
+    }
+
+    .status-badge.not-completed {
+      background-color: #FDE8E8;
+      color: #9B1C1C;
+    }
   </style>
   <link rel="stylesheet" href="/premium-ui.css">
   <script src="/premium-ui.js" defer></script>
 </head>
+
 <body class="bg-gray-50">
   <div class="flex h-screen">
     <aside class="hidden lg:flex lg:w-64 bg-white border-r-2 border-gray-200 flex-col p-6">
@@ -120,14 +156,17 @@
         <div class="nav-item active" data-nav="dashboard" onclick="showSection('dashboard', event)">Dashboard</div>
         <div class="nav-item" data-nav="courses" onclick="showSection('courses', event)">My Courses</div>
         <div class="nav-item" data-nav="students" onclick="showSection('students', event)">Enrolled Students</div>
-        <div class="nav-item" data-nav="manage-assignments" onclick="showSection('manage-assignments', event)">Manage Assignments</div>
-        <div class="nav-item" data-nav="schedule-classes" onclick="showSection('schedule-classes', event)">Schedule Classes</div>
+        <div class="nav-item" data-nav="manage-assignments" onclick="showSection('manage-assignments', event)">Manage
+          Assignments</div>
+        <div class="nav-item" data-nav="schedule-classes" onclick="showSection('schedule-classes', event)">Schedule
+          Classes</div>
         <div class="nav-item" data-nav="schedule" onclick="showSection('schedule', event)">Weekly Schedule</div>
         <div class="nav-item" data-nav="analytics" onclick="showSection('analytics', event)">Analytics</div>
         <div class="nav-item" data-nav="tasks" onclick="showSection('tasks', event)">To-Do List</div>
       </nav>
 
-      <button onclick="logout()" class="w-full py-2 px-4 bg-red-50 text-red-600 font-bold rounded-lg hover:bg-red-100 transition">
+      <button onclick="logout()"
+        class="w-full py-2 px-4 bg-red-50 text-red-600 font-bold rounded-lg hover:bg-red-100 transition">
         Logout
       </button>
     </aside>
@@ -204,7 +243,8 @@
           <h2 class="text-3xl font-black text-gray-900 mb-6">Enrolled Students</h2>
           <div class="mb-6">
             <label class="block font-bold text-gray-700 mb-2">Select Course</label>
-            <select id="courseSelect" onchange="loadEnrolledStudents()" class="px-4 py-2 border-2 border-gray-300 rounded-lg w-full md:w-80">
+            <select id="courseSelect" onchange="loadEnrolledStudents()"
+              class="px-4 py-2 border-2 border-gray-300 rounded-lg w-full md:w-80">
               <option value="">Choose a course...</option>
             </select>
           </div>
@@ -221,20 +261,24 @@
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label class="block text-sm font-bold text-gray-700 mb-1">Target Course</label>
-                  <select id="asgCourseSelect" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg" required></select>
+                  <select id="asgCourseSelect" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg"
+                    required></select>
                 </div>
                 <div>
                   <label class="block text-sm font-bold text-gray-700 mb-1">Due Date</label>
-                  <input id="asgDueDate" type="date" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg" required>
+                  <input id="asgDueDate" type="date" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg"
+                    required>
                 </div>
               </div>
               <div>
                 <label class="block text-sm font-bold text-gray-700 mb-1">Assignment Title</label>
-                <input id="asgTitle" type="text" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg" placeholder="Final Project Proposal" required>
+                <input id="asgTitle" type="text" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg"
+                  placeholder="Final Project Proposal" required>
               </div>
               <div>
                 <label class="block text-sm font-bold text-gray-700 mb-1">Instructions</label>
-                <textarea id="asgDesc" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg h-32" placeholder="Detail the assignment requirements..."></textarea>
+                <textarea id="asgDesc" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg h-32"
+                  placeholder="Detail the assignment requirements..."></textarea>
               </div>
               <button type="submit" class="btn-primary w-full">Create Assignment</button>
             </form>
@@ -249,25 +293,30 @@
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label class="block text-sm font-bold text-gray-700 mb-1">Target Course</label>
-                  <select id="clCourseSelect" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg" required></select>
+                  <select id="clCourseSelect" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg"
+                    required></select>
                 </div>
                 <div>
                   <label class="block text-sm font-bold text-gray-700 mb-1">Scheduled At</label>
-                  <input id="clDate" type="datetime-local" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg" required>
+                  <input id="clDate" type="datetime-local" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg"
+                    required>
                 </div>
               </div>
               <div>
                 <label class="block text-sm font-bold text-gray-700 mb-1">Session Title</label>
-                <input id="clTitle" type="text" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg" placeholder="Live Q&A Session" required>
+                <input id="clTitle" type="text" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg"
+                  placeholder="Live Q&A Session" required>
               </div>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label class="block text-sm font-bold text-gray-700 mb-1">Video URL (Recorded)</label>
-                  <input id="clVideoUrl" type="url" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg" placeholder="https://youtube.com/...">
+                  <input id="clVideoUrl" type="url" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg"
+                    placeholder="https://youtube.com/...">
                 </div>
                 <div>
                   <label class="block text-sm font-bold text-gray-700 mb-1">Live Link (Zoom/Meet)</label>
-                  <input id="clLiveLink" type="url" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg" placeholder="https://zoom.us/j/...">
+                  <input id="clLiveLink" type="url" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg"
+                    placeholder="https://zoom.us/j/...">
                 </div>
               </div>
               <button type="submit" class="btn-primary w-full">Schedule Session</button>
@@ -328,7 +377,9 @@
                   </tr>
                 </thead>
                 <tbody id="statsTable">
-                  <tr><td colspan="5" class="text-center text-gray-500">Loading analytics...</td></tr>
+                  <tr>
+                    <td colspan="5" class="text-center text-gray-500">Loading analytics...</td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -346,8 +397,10 @@
               <div class="panel-card">
                 <h3 class="text-xl font-bold text-gray-900 mb-4">Add Task</h3>
                 <form id="taskForm" class="grid grid-cols-1 md:grid-cols-3 gap-3" onsubmit="handleTaskSubmit(event)">
-                  <input id="taskInput" type="text" class="px-4 py-2 border-2 border-gray-300 rounded-lg md:col-span-2" placeholder="Review student submissions" required>
-                  <input id="taskTimeInput" type="text" class="px-4 py-2 border-2 border-gray-300 rounded-lg" placeholder="04:30 PM" required>
+                  <input id="taskInput" type="text" class="px-4 py-2 border-2 border-gray-300 rounded-lg md:col-span-2"
+                    placeholder="Review student submissions" required>
+                  <input id="taskTimeInput" type="text" class="px-4 py-2 border-2 border-gray-300 rounded-lg"
+                    placeholder="04:30 PM" required>
                   <button type="submit" class="btn-primary md:col-span-3">Save Task</button>
                 </form>
               </div>
@@ -449,9 +502,9 @@
       try {
         const response = await fetch(`${API_URL}/courses`);
         const allCourses = response.ok ? await response.json() : [];
-        userCourses = allCourses.filter(course => 
-          course.instructor && 
-          currentUser && 
+        userCourses = allCourses.filter(course =>
+          course.instructor &&
+          currentUser &&
           course.instructor.toLowerCase() === currentUser.name.toLowerCase()
         );
 
@@ -847,7 +900,7 @@
       try {
         const response = await fetch(`${API_URL}/trainer/approve-completion`, {
           method: 'PUT',
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
@@ -923,4 +976,5 @@
     });
   </script>
 </body>
+
 </html>
